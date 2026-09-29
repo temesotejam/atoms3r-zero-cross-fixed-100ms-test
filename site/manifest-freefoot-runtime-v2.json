@@ -1,0 +1,27 @@
+{
+  "name": "AtomS3R Free-foot Runtime V2",
+  "version": "0.47.32-zero-cross-fixed-100ms",
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware/bootloader.bin",
+          "offset": 0
+        },
+        {
+          "path": "firmware/partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "firmware/boot_app0.bin",
+          "offset": 57344
+        },
+        {
+          "path": "firmware/firmware-freefoot-runtime-v2.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}

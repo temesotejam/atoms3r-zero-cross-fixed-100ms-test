@@ -1,0 +1,90 @@
+'use strict';
+const fs=require('fs'), vm=require('vm'), assert=require('node:assert/strict');
+let now=100000, failStart=false, loseReply=false, calls=[];
+const storage=new Map(), elements=new Map();
+const canvas={clearRect(){},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){},arc(){},fill(){}};
+const element=id=>{if(!elements.has(id))elements.set(id,{textContent:'',style:{},getContext:()=>canvas});return elements.get(id);};
+const status={state:'READY_TO_MEASURE',ready:true,running:false,downloadable:false,controller_fresh:true,
+  target_deg:8,boot_id:1,
+  export_phase:'empty',command:{pending:false,submitted:0,completed:0,result:''},foot:{},upright:{}};
+const sessionStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
+const context=vm.createContext({document:{getElementById:element},Date:{now:()=>now},sessionStorage,
+  setTimeout:()=>1,clearTimeout(){},AbortController,Map,DataView,Uint8Array,TextDecoder,
+  fetch:async(path)=>{
+    calls.push(path);
+    if(path.startsWith('/start-energy-control-autonomous?target_deg=')) {
+      const target=Number(path.split('=')[1]);assert.ok([8,10,12].includes(target));
+      if(!failStart)status.target_deg=target;
+      if(loseReply)throw Error('reply lost after acceptance');
+      return failStart ? {ok:false,status:409,text:async()=>'busy'} : {ok:true,text:async()=>'offline_run_queued'};
+    }
+    assert.equal(path,'/status.json');return {ok:true,json:async()=>status};
+  }});
+const source=fs.readFileSync('web/pose_comparison.js','utf8')+'\n'+fs.readFileSync('web/runtime.js','utf8').replace(/poll\(\);\s*$/,'');
+vm.runInContext(source,context);
+(async()=>{
+  await vm.runInContext('refresh()',context);assert.equal(element('start').disabled,false);
+  assert.equal(element('target').value,'8');assert.equal(element('target').disabled,false);
+  element('target').value='9';calls=[];await vm.runInContext('startOfflineRun()',context);
+  assert.equal(calls.length,0);assert.equal(vm.runInContext('offlineMode',context),false);
+  element('target').value='10';await vm.runInContext('refresh()',context);
+  assert.equal(element('target').value,'10'); // polling must not overwrite a user's selection
+  calls=[];await vm.runInContext('startOfflineRun()',context);
+  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=10']);
+  assert.equal(element('target').disabled,true);assert.match(element('run-target').textContent,/比較用の記録角度：10°/);
+  await vm.runInContext('poll()',context);now+=20000;await vm.runInContext('poll()',context);
+  assert.equal(calls.length,1);assert.equal(element('start').disabled,true);
+  assert.equal(element('download').disabled,true);assert.equal(element('pitch').textContent,'—');
+  assert.ok(storage.size===1);
+  // Transport failure after expected finish must keep the UI recoverable.
+  now+=26000;
+  const fetch=context.fetch;context.fetch=async()=>{throw Error('HTTP not listening');};
+  await vm.runInContext('poll()',context);assert.match(element('connection').textContent,/復帰待ち/);
+  context.fetch=fetch;
+  Object.assign(status,{state:'ESTOP',ready:false,downloadable:true,last_error:'fore_aft_tilt_90deg'});
+  await vm.runInContext('poll()',context);
+  assert.equal(vm.runInContext('offlineMode',context),false);assert.equal(storage.size,0);
+  assert.equal(element('download').disabled,false);assert.match(element('message').textContent,/fore_aft_tilt_90deg/);
+  assert.match(element('run-target').textContent,/今回の記録角度：10°/);
+  assert.equal(element('target').disabled,true); // sealed run remains associated with its target
+  Object.assign(status,{state:'READY_TO_MEASURE',ready:true,downloadable:false,last_error:''});
+  await vm.runInContext('refresh()',context);element('target').value='12';
+  failStart=true;await vm.runInContext('startOfflineRun()',context);
+  assert.equal(vm.runInContext('offlineMode',context),false);
+  failStart=false;loseReply=true;calls=[];await vm.runInContext('startOfflineRun()',context);
+  await vm.runInContext('poll()',context);assert.equal(calls.length,1);
+  assert.equal(vm.runInContext('offlineMode',context),true); // Never retry a possibly accepted START.
+  // A reload of an already loaded page preserves the quiet countdown.
+  const restored=vm.createContext({...context,sessionStorage,document:{getElementById:element}});
+  vm.runInContext(source,restored);assert.equal(vm.runInContext('offlineMode',restored),true);
+  // A status request already in flight at START must not clear the pause when
+  // its old READY response arrives. Otherwise polls would burden the live AP.
+  vm.runInContext('clearOffline()',context);loseReply=false;
+  let deliver;
+  context.fetch=async(path)=>path==='/status.json'
+    ? new Promise(resolve=>{deliver=resolve;}) : fetch(path);
+  const staleRefresh=vm.runInContext('refresh()',context);
+  calls=[];await vm.runInContext('startOfflineRun()',context);
+  deliver({ok:true,json:async()=>status});await staleRefresh;
+  assert.equal(vm.runInContext('offlineMode',context),true);
+  assert.match(element('connection').textContent,/Wi-Fi接続を維持/);
+  await vm.runInContext('poll()',context);assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=12']);
+  // Default expiry resumes GETs automatically, including normal completion.
+  context.fetch=fetch;now+=46000;
+  Object.assign(status,{state:'FINISHED',ready:false,downloadable:true,last_error:''});
+  await vm.runInContext('poll()',context);
+  assert.equal(vm.runInContext('offlineMode',context),false);
+  assert.equal(element('download').disabled,false);
+  assert.match(element('message').textContent,/Web表示が復帰/);
+  assert.match(element('run-target').textContent,/今回の記録角度：12°/);
+  // The next run may select 8 again. A device reboot also restores its default.
+  Object.assign(status,{state:'READY_TO_MEASURE',ready:true,downloadable:false});
+  await vm.runInContext('refresh()',context);assert.equal(element('target').disabled,false);
+  element('target').value='8';calls=[];await vm.runInContext('startOfflineRun()',context);
+  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=8']);
+  vm.runInContext('clearOffline()',context);status.boot_id=2;
+  element('target').value='12';await vm.runInContext('refresh()',context);
+  assert.equal(element('target').value,'8');
+  console.log('HTTP pause browser: no run polling, stale pre-START response, lost/rejected START, HTTP retry, FINISHED/ESTOP download and restored countdown PASS');
+  console.log('Target UI: 8/10/12 request values, invalid selection, polling preservation, run lock, applied result and reboot PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});
