@@ -1,6 +1,6 @@
 {
   "name": "AtomS3R Free-foot Runtime V2",
-  "version": "0.47.32-zero-cross-fixed-100ms",
+  "version": "0.47.33-zero-cross-fixed-500mA-100ms",
   "builds": [
     {
       "chipFamily": "ESP32-S3",

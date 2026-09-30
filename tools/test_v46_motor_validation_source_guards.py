@@ -18,9 +18,9 @@ def main() -> None:
     for token in (
         '"energy_control_autonomous_v7_side_response_correction_rwlog30s"',
         "ENERGY_CONTROL_AUTONOMOUS_DURATION_MS = 30000UL",
-        "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 300",
+        "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 500",
         "ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS = 100",
-        "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 300",
+        "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 500",
         "ENERGY_CONTROL_AUTONOMOUS_MAX_PULSE_MS = 100",
     ):
         assert token in config, token
