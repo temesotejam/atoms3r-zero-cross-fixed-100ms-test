@@ -28,7 +28,7 @@ class V7HalfCycle:
     def start_kick(self) -> tuple[int, int, int]:
         assert self.phase == "IDLE"
         self.phase = "STRONG_START_KICK"
-        return (-1, 500, 100)
+        return (-1, 1000, 100)
 
     def finish_kick(self) -> None:
         assert self.phase == "STRONG_START_KICK"
@@ -84,9 +84,9 @@ def test_duration_and_frozen_values() -> None:
     assert "energy_control_autonomous_v7_side_response_correction_20260904" in CONFIG
     for frozen in (
         "ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG = 8.0f",
-        "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 500",
+        "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 1000",
         "ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS = 100",
-        "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 500",
+        "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 1000",
         "ENERGY_CONTROL_AUTONOMOUS_MAX_PULSE_MS = 100",
         "ENERGY_CONTROL_AUTONOMOUS_P1_FREE_DECAY_ALPHA = 0.8706716644111074f",
         "ENERGY_CONTROL_AUTONOMOUS_P1_FREE_DECAY_EC_J = 0.0f",
@@ -100,7 +100,7 @@ def test_duration_and_frozen_values() -> None:
 
 def test_one_peak_zero_pulse_cycle_and_pulse_suppression() -> None:
     cycle = V7HalfCycle()
-    assert cycle.start_kick() == (-1, 500, 100)
+    assert cycle.start_kick() == (-1, 1000, 100)
     cycle.finish_kick()
     # First peak is deliberately exempt from normal zero-to-peak timing.
     assert cycle.peak(110)

@@ -4,16 +4,16 @@ static const char RUNTIME_HTML[] PROGMEM = R"FREEFOOT(<!doctype html><html lang=
 <style>
 :root{font-family:system-ui,sans-serif;color:#1d293d;background:#eef2f5;font-size:16px}*{box-sizing:border-box}body{max-width:950px;margin:auto;padding:20px}h1{font-size:1.65rem;margin-bottom:4px}h2{font-size:1.08rem}p{line-height:1.6}.muted{color:#546477;font-size:.88rem}.card{background:white;border-radius:14px;padding:20px;margin:16px 0;border:1px solid #d9e1e8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}.value{font-size:2rem;font-variant-numeric:tabular-nums;margin:4px 0}.label{font-size:.85rem;color:#546477}button{padding:13px 18px;border:0;border-radius:8px;background:#174b8e;color:white;font:inherit;cursor:pointer;margin:4px 4px 4px 0}button:disabled{opacity:.4;cursor:default}#stop{background:#b62032}#clear,#cancel{background:#58677a}code,pre{font-family:ui-monospace,monospace}pre{white-space:pre-wrap;font-size:.78rem;overflow-wrap:anywhere}#connection{font-weight:600}progress{width:100%;height:24px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;border-bottom:1px solid #e1e6eb}canvas{width:100%;height:120px;background:#f3f6fa;border-radius:8px}#message{min-height:26px;color:#9c2636}a{color:#174b8e}
 </style>
-<h1>AtomS3R Free-foot</h1><div class="muted">0.47.33 · ZEROクロス入力 500 mA / 100 ms固定 · 運転中Web休止 · 足角度はMEKF基準の暫定校正・観測用</div>
+<h1>AtomS3R Free-foot</h1><div class="muted">0.47.34 · ZEROクロス入力 1000 mA / 100 ms固定 · 運転中Web休止 · 足角度はMEKF基準の暫定校正・観測用</div>
 <p id="connection">接続を確認中…</p>
 <section class="card"><div class="grid"><div><div class="label">状態</div><div class="value" id="state">—</div></div><div><div class="label">残り時間</div><div class="value" id="remaining">—</div></div><div><div class="label">胴体の左右揺動 · MEKF</div><div class="value" id="pitch">—</div></div><div><div class="label">指令 / 実測電流</div><div class="value" style="font-size:1.5rem" id="current">—</div></div></div>
 <p id="guide">起動後は静止させてください。LEDが点灯したら直立させ、左右マーカーが見える状態で2秒以上静止します。</p>
 <p><label for="target">比較用の記録角度 </label><select id="target" disabled aria-describedby="target-help" style="font:inherit;padding:10px 14px;border:1px solid #aab8c6;border-radius:8px;background:white"><option value="8" selected>8°</option><option value="10">10°</option><option value="12">12°</option></select></p>
-<p class="muted" id="target-help">選択値はログに保存します。この試験版のZEROクロス入力は選択値に関係なく500 mA / 100 ms固定です。</p>
+<p class="muted" id="target-help">選択値はログに保存します。この試験版のZEROクロス入力は選択値に関係なく1000 mA / 100 ms固定です。</p>
 <p class="muted" id="run-target" role="status">記録角度は測定開始時に保存します。パルス幅は固定です。</p>
 <p class="muted">yaw関連機能は停止中です。</p>
 <button id="start" disabled>30秒測定を開始</button><button id="reconnect" style="display:none">終了・Web復帰を確認</button><button id="clear" disabled>ログを消去・次の測定へ</button>
-<div id="message" role="status"></div><p class="muted">開始・終了のLED同期はそれぞれ5秒。制御は既存のAutonomous、固定3ms補償、500mA / 最大100msパルスです。</p></section>
+<div id="message" role="status"></div><p class="muted">開始・終了のLED同期はそれぞれ5秒。制御は既存のAutonomous、固定3ms補償、1000mA / 最大100msパルスです。</p></section>
 <p class="muted">運転中もWi-Fiを維持し、Web更新を休止して本体で制御・観測・記録します。前後90°以上の傾斜で停止します。横倒しは姿勢STOPの対象にしません。姿勢を戻しても再始動しません。Wi-Fi接続と画面を保ったままお待ちください。終了後にWeb表示が復帰したらログを保存してください。Web復帰だけではログは消えません。本体の電源断・再起動では未取得のログが失われます。</p>
 <section class="card"><h2>左右足角度 · 胴体に対する相対角</h2><div class="grid"><div><div class="label">右足 · 上段マーカー A</div><div class="value" id="right">—</div></div><div><div class="label">左足 · 下段マーカー B</div><div class="value" id="left">—</div></div><div><div class="label">カメラ実測 / 目標</div><div class="value" style="font-size:1.5rem" id="fps">— / 15 fps</div></div></div>
 <canvas id="markers" width="640" height="120" aria-label="マーカー検出位置。上段が右足、下段が左足。"></canvas>

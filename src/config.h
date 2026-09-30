@@ -124,7 +124,7 @@ static constexpr char ATTITUDE_VALIDATION_REVISION[] = "v46aj_fixed_3ms_compensa
 // V46ak changes observation only. ATTITUDE_VALIDATION_REVISION intentionally remains V46aj.
 static constexpr char AMPLITUDE_CONTROL_OBSERVATION_REVISION[] = "v46ak_pre_input_state_observation_20260920";
 // V46al-R2 previous-peak active control begin
-static constexpr char AMPLITUDE_CONTROL_REVISION[] = "zero_cross_fixed_500mA_100ms_04733_20260930";
+static constexpr char AMPLITUDE_CONTROL_REVISION[] = "zero_cross_fixed_1000mA_100ms_04734_20260930";
 static constexpr char AMPLITUDE_CONTROL_BASELINE_SOURCE[] =
     "atoms3r-amplitude-control-v46ak-stable@bb9c5ed07c5ca8b3c6c6b5813b6c2f1b1f57a6ec";
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_PREVIOUS_PEAK_MODEL_REVISION[] =
@@ -281,19 +281,19 @@ static constexpr uint8_t ENERGY_CONTROL_V0_INVALID_EVENT_LOG_OVERFLOW = 12;
 // event policy separates raw detector candidates from accepted physical events
 // so pulse transients cannot self-trigger the next control cycle.
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_MEASUREMENT_MODE[] =
-    "zero_cross_fixed_100ms_500mA_rwlog30s";
+    "zero_cross_fixed_100ms_1000mA_rwlog30s";
 static constexpr uint32_t ENERGY_CONTROL_AUTONOMOUS_DURATION_MS = 30000UL;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG = 8.0f;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_TARGET_MIN_DEG = 8.0f;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_TARGET_MAX_DEG = 12.0f;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_TARGET_CHOICES_DEG[3] = {8.0f, 10.0f, 12.0f};
 // This strong kick is startup-only and independent of normal energy control.
-static constexpr int16_t ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 500;
+static constexpr int16_t ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 1000;
 static constexpr uint16_t ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS = 100;
 static constexpr int8_t ENERGY_CONTROL_AUTONOMOUS_START_KICK_DIRECTION = -1;
 // Normal autonomous output deliberately does not use the Q_IDENT 5--25 ms
 // experiment limits.  Width zero is a documented no-output decision.
-static constexpr int16_t ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 500;
+static constexpr int16_t ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 1000;
 static constexpr uint16_t ENERGY_CONTROL_AUTONOMOUS_MIN_PULSE_MS = 0;
 static constexpr uint16_t ENERGY_CONTROL_AUTONOMOUS_MAX_PULSE_MS = 100;
 static constexpr uint16_t ENERGY_CONTROL_AUTONOMOUS_FIXED_TEST_PULSE_MS = 100;

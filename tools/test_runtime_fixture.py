@@ -70,7 +70,7 @@ header = converter.parse_header(data)
 metadata = converter.expand_tables(json.loads(data[110:110+header['metadata_json_size']], parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value))))
 assert metadata['metadata_json_final_bytes'] == header['metadata_json_size']
 assert not metadata['metadata_event_detail_truncated']
-assert metadata['firmware_revision']=='0.47.33-zero-cross-fixed-500mA-100ms'
+assert metadata['firmware_revision']=='0.47.34-zero-cross-fixed-1000mA-100ms'
 assert metadata['rate_baseline_revision']=='fixed_foot_mekf_rate_refit_04731_20260929'
 assert metadata['previous_peak_residual_enabled'] is False
 assert metadata['rate_baseline_previous_peak_used'] is False

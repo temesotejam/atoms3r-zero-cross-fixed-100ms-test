@@ -16,8 +16,8 @@ assert '"version": "0.46.16"' in manifest
 # Physical/control behavior is deliberately frozen from V46j.
 assert "CURRENT_AUDIT_FAST_READ_PERIOD_US = 2000UL" in config
 assert "CURRENT_AUDIT_LOG_PERIOD_US = 2000UL" in config
-assert "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 500" in config
-assert "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 500" in config
+assert "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 1000" in config
+assert "ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA = 1000" in config
 assert "ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS = 100" in config
 assert "IMU_POLL_PERIOD_US = 1000UL" in config
 assert "BMI270_GYRO_ODR_HZ = 400" in config

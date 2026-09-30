@@ -169,7 +169,7 @@ int main(){
    assert(last_zero.target_peak_deg==mean);
    const float residual=last_zero.free_next_peak_amplitude_deg-last_zero.rate_baseline_peak_deg;
    assert(fabsf(residual)<1e-5f); // retired 8-degree residual must not be stacked
-   assert(last_zero.output_executed && last_zero.pulse_width_ms==100 && last_zero.command_current_mA==500);
+   assert(last_zero.output_executed && last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1000);
    assert(p.status_.steering.reason==steering::Reason::Disabled);
    assert(!p.status_.steering.gyro_valid && std::isnan(p.status_.steering.yaw_deg));
    assert(p.status_.steering.delta_deg==0 && p.status_.steering.cycles==0);
@@ -208,4 +208,4 @@ with tempfile.TemporaryDirectory(prefix='motion-speed-') as tmp:
                  '-o',str(p/'test')]
         subprocess.run(command,check=True)
         results.append(subprocess.check_output([str(p/'test')]))
-    print(f'Fixed-width decision flow: {len(results[0])} serialized bytes; all executed ZERO-cross pulses are 100 ms / 500 mA; scheduling/physical timing unverified PASS')
+    print(f'Fixed-width decision flow: {len(results[0])} serialized bytes; all executed ZERO-cross pulses are 100 ms / 1000 mA; scheduling/physical timing unverified PASS')

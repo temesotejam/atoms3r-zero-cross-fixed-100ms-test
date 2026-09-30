@@ -43,7 +43,7 @@ assert "const float detector_relative_angle_deg = status_.pitch_mekf_detector_re
 assert "energy_control_autonomous_gyro_relative_deg_" not in motion
 assert "pitch_mekf_measurement_relative_deg" in motion
 for token in (
-    "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 500",
+    "ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA = 1000",
     "ENERGY_CONTROL_AUTONOMOUS_MAX_PULSE_MS = 100",
 ):
     assert token in config, token
