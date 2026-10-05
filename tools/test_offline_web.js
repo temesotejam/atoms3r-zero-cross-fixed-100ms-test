@@ -81,7 +81,7 @@ vm.runInContext(source,context);
   assert.match(element('connection').textContent,/Wi-Fi接続を維持/);
   await vm.runInContext('poll()',context);assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=12&input_peak_percent=65']);
   // Default expiry resumes GETs automatically, including normal completion.
-  context.fetch=fetch;now+=46000;
+  context.fetch=fetch;now+=31000;
   Object.assign(status,{state:'FINISHED',ready:false,downloadable:true,last_error:''});
   await vm.runInContext('poll()',context);
   assert.equal(vm.runInContext('offlineMode',context),false);

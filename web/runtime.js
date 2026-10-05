@@ -57,7 +57,7 @@ function controls() {
 }
 function setOffline(waitMs) {
   ++offlineGeneration;
-  offlineMode = true; offlineUntil = Date.now() + Math.max(0, Math.min(45000, waitMs));
+  offlineMode = true; offlineUntil = Date.now() + Math.max(0, Math.min(30000, waitMs));
   try { sessionStorage.setItem(offlineKey, String(offlineUntil)); } catch (_) {}
   renderOffline();
 }
@@ -78,7 +78,7 @@ function renderOffline() {
     : `開始要求の入力位置：直前ピーク角の${requestedInputPercent}%（1 A・100 ms固定）`;
   $('remaining').textContent = remaining ? `${remaining} s（Web復帰目安）` : '復帰待ち';
   for (const id of ['pitch', 'current', 'right', 'left', 'fps']) $(id).textContent = '—';
-  $('guide').textContent = '本体で制御・観測・記録を行います。開始5秒＋測定30秒＋終了5秒が予定時間です。前後90°以上の傾斜でSTOPします。横倒しは姿勢STOPの対象にしません。表示時間はPC側の目安で、実際の進行・終了を確認した値ではありません。';
+  $('guide').textContent = '本体で制御・観測・記録を行います。開始5秒＋測定15秒＋終了5秒が予定時間です。前後90°以上の傾斜でSTOPします。横倒しは姿勢STOPの対象にしません。表示時間はPC側の目安で、実際の進行・終了を確認した値ではありません。';
   $('foot-status').textContent = '足角度の画面更新を停止。本体内の記録は継続します。';
   $('mekf-axes').textContent = '運転中の姿勢表示を停止しています。';
   controls();
@@ -223,7 +223,7 @@ async function startOfflineRun() {
   }
   requestedTargetDeg = target;
   requestedInputPercent = inputPercent;
-  commandInFlight = true; setOffline(45000); $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を送信中…`;
+  commandInFlight = true; setOffline(30000); $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を送信中…`;
   try {
     await request(`/start-energy-control-autonomous?target_deg=${target}&input_peak_percent=${inputPercent}`, {method:'POST', kind:'text'});
     $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を受け付けました。Web休止後に本体が開始条件を確認します。Wi-Fi接続と画面をそのまま保ってお待ちください。`;
@@ -526,6 +526,6 @@ $('pose-reset').onclick = () => {
 };
 try {
   const until = Number(sessionStorage.getItem(offlineKey));
-  if (until > Date.now() && until <= Date.now() + 45000) setOffline(until - Date.now());
+  if (until > Date.now() && until <= Date.now() + 30000) setOffline(until - Date.now());
 } catch (_) {}
 poll();

@@ -8,7 +8,7 @@ class OfflineRunSession {
  public:
   enum class Phase { Online, Draining, Starting, Running, Cancelling, Restoring };
   enum class StartResult { Pending, Started, Rejected };
-  static constexpr uint32_t kDisplayWaitMs = 45000;
+  static constexpr uint32_t kDisplayWaitMs = 30000;
   bool queue(uint32_t now) {
     if (busy()) return false;
     error_ = ""; queued_ms_ = since_ms_ = now; phase_ = Phase::Draining;
