@@ -9,8 +9,8 @@ let offlineGeneration = 0;
 const offlineKey = 'freefoot-offline-run-until';
 const targetChoices = [8, 10, 12];
 let targetInitialized = false, targetBootId = null, requestedTargetDeg = null;
-let angleInitialized = false, angleBootId = null, requestedInputAngleDeg = null;
-const validInputAngle = value => Number.isFinite(value) && value >= 0 && value <= 10;
+let angleInitialized = false, angleBootId = null, requestedInputPercent = null;
+const validInputPercent = value => Number.isFinite(value) && value >= 0 && value <= 100;
 const nap = ms => new Promise(resolve => setTimeout(resolve, ms));
 function crc32(data, crc = 0) {
   crc = ~crc;
@@ -38,7 +38,7 @@ function controls() {
   const building = latest?.export_phase === 'building';
   $('start').disabled = !fresh || busy || transferRunning || !latest.ready || latest.running || latest.export_phase !== 'empty';
   $('target').disabled = $('start').disabled;
-  $('input-angle').disabled = $('start').disabled;
+  $('input-percent').disabled = $('start').disabled;
   $('clear').disabled = !fresh || busy || transferRunning || building || latest.running || !['FINISHED', 'ESTOP'].includes(latest.state);
   $('download').disabled = !fresh || busy || transferRunning || !latest.downloadable || latest.running;
   $('cancel').disabled = !transferRunning;
@@ -73,9 +73,9 @@ function renderOffline() {
   $('run-target').textContent = requestedTargetDeg === null
     ? '比較用の記録角度はWeb復帰後に確認します。'
     : `比較用の記録角度：${requestedTargetDeg}°（ZEROクロス入力は100 ms固定）`;
-  $('run-angle').textContent = requestedInputAngleDeg === null
-    ? '入力角度はWeb復帰後に確認します。'
-    : `開始要求の入力角度：ZEROの${requestedInputAngleDeg}°手前（1 A・100 ms固定）`;
+  $('run-percent').textContent = requestedInputPercent === null
+    ? '入力割合はWeb復帰後に確認します。'
+    : `開始要求の入力位置：直前ピーク角の${requestedInputPercent}%（1 A・100 ms固定）`;
   $('remaining').textContent = remaining ? `${remaining} s（Web復帰目安）` : '復帰待ち';
   for (const id of ['pitch', 'current', 'right', 'left', 'fps']) $(id).textContent = '—';
   $('guide').textContent = '本体で制御・観測・記録を行います。開始5秒＋測定30秒＋終了5秒が予定時間です。前後90°以上の傾斜でSTOPします。横倒しは姿勢STOPの対象にしません。表示時間はPC側の目安で、実際の進行・終了を確認した値ではありません。';
@@ -130,14 +130,14 @@ function render(s) {
       targetInitialized = true; targetBootId = s.boot_id;
     }
   }
-  if (validInputAngle(s.input_advance_deg) &&
+  if (validInputPercent(s.input_peak_percent) &&
       (!angleInitialized || angleBootId !== s.boot_id || s.running || terminal)) {
-    $('input-angle').value = String(s.input_advance_deg);
+    $('input-percent').value = String(s.input_peak_percent);
     angleInitialized = true; angleBootId = s.boot_id;
   }
-  $('run-angle').textContent = s.running || terminal
-    ? `今回の入力角度：ZEROの${format(s.input_advance_deg, 1)}°手前（1 A・100 ms固定）`
-    : '入力角度は測定開始時に確定します。';
+  $('run-percent').textContent = s.running || terminal
+    ? `今回の入力位置：直前ピーク角の${format(s.input_peak_percent, 1)}%（1 A・100 ms固定）`
+    : '入力割合は測定開始時に確定します。';
   $('run-target').textContent = s.running || terminal
     ? `今回の記録角度：${format(s.target_deg, 0)}°（入力は100 ms固定）`
     : '記録角度は測定開始時に保存します。パルス幅は固定です。';
@@ -190,7 +190,7 @@ async function refresh(force = false) {
 }
 function adoptStatus(s) {
   if (!s || typeof s.state !== 'string' || typeof s.export_phase !== 'string' ||
-      !validInputAngle(s.input_advance_deg) ||
+      !validInputPercent(s.input_peak_percent) ||
       !s.foot || !s.upright || !s.command ||
       typeof s.command.pending !== 'boolean' ||
       !Number.isInteger(s.command.completed) || !Number.isInteger(s.command.submitted) ||
@@ -216,17 +216,17 @@ async function startOfflineRun() {
   if (!targetChoices.includes(target)) {
     $('message').textContent = '比較用の記録角度を8°・10°・12°から選択してください。'; return;
   }
-  const angleText = $('input-angle').value.trim();
-  const inputAngle = Number(angleText);
-  if (!angleText || !validInputAngle(inputAngle)) {
-    $('message').textContent = '入力角度を0〜10°の範囲で設定してください。'; return;
+  const angleText = $('input-percent').value.trim();
+  const inputPercent = Number(angleText);
+  if (!angleText || !validInputPercent(inputPercent)) {
+    $('message').textContent = '入力位置を直前ピーク角の0〜100%の範囲で設定してください。'; return;
   }
   requestedTargetDeg = target;
-  requestedInputAngleDeg = inputAngle;
-  commandInFlight = true; setOffline(45000); $('message').textContent = `角度入力試験（ZEROの${inputAngle}°手前・記録角度${target}°）の開始要求を送信中…`;
+  requestedInputPercent = inputPercent;
+  commandInFlight = true; setOffline(45000); $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を送信中…`;
   try {
-    await request(`/start-energy-control-autonomous?target_deg=${target}&input_advance_deg=${inputAngle}`, {method:'POST', kind:'text'});
-    $('message').textContent = `角度入力試験（ZEROの${inputAngle}°手前・記録角度${target}°）の開始要求を受け付けました。Web休止後に本体が開始条件を確認します。Wi-Fi接続と画面をそのまま保ってお待ちください。`;
+    await request(`/start-energy-control-autonomous?target_deg=${target}&input_peak_percent=${inputPercent}`, {method:'POST', kind:'text'});
+    $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を受け付けました。Web休止後に本体が開始条件を確認します。Wi-Fi接続と画面をそのまま保ってお待ちください。`;
   } catch (error) {
     if (/^\d{3}:/.test(error.message)) { clearOffline(); await refresh(); }
     $('message').textContent = `開始結果の確認: ${error.message}。Web復帰後に本体の結果を確認します。`;

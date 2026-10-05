@@ -11,7 +11,7 @@
 #include "control_work_profile.h"
 #include "control_latency.h"
 #include "autonomous_target.h"
-#include "autonomous_input_angle.h"
+#include "autonomous_input_percent.h"
 
 // One permanent controller owner, including idle and calibration. HTTP sends
 // commands and consumes POD snapshots; it never calls the live runner/IMU.
@@ -23,7 +23,7 @@ struct RunControlSnapshot {
   uint16_t battery_mV = 0;
   uint8_t led_state = 0, sync_event_id = 0;
   float pitch_deg = 0, rate_dps = 0, target_deg = 0;
-  float input_advance_deg = autonomous_input_angle::kDefaultDeg;
+  float input_peak_percent = autonomous_input_percent::kDefaultPercent;
   MekfAttitudeSnapshot mekf_attitude;
   steering::Snapshot steering = steering::disabledSnapshot();
   float upright_error_deg = 180, accel_norm_g = 0, gyro_norm_dps = 0;
@@ -95,25 +95,25 @@ class RunControlWorker {
   }
   bool request(Command command,
                float target_deg = Config::ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG,
-               float input_advance_deg = autonomous_input_angle::kDefaultDeg) {
+               float input_peak_percent = autonomous_input_percent::kDefaultPercent) {
     if (!ready() || command == Command::None) return false;
     if (command == Command::Start && (!autonomous_target::selectable(target_deg) ||
-        !autonomous_input_angle::valid(input_advance_deg))) return false;
+        !autonomous_input_percent::valid(input_peak_percent))) return false;
     portENTER_CRITICAL(&mux_);
     const bool accepted = !command_state_.pending && !snapshot_.running && !stop_requested_;
     if (accepted) {
-      command_ = command; command_target_deg_ = target_deg; command_input_advance_deg_ = input_advance_deg;
+      command_ = command; command_target_deg_ = target_deg; command_input_peak_percent_ = input_peak_percent;
       command_state_.pending = true; ++command_state_.submitted;
     }
     portEXIT_CRITICAL(&mux_);
     return accepted;
   }
-  Command takeCommand(float* target_deg = nullptr, float* input_advance_deg = nullptr) {
+  Command takeCommand(float* target_deg = nullptr, float* input_peak_percent = nullptr) {
     portENTER_CRITICAL(&mux_);
     const Command command = stop_requested_ ? Command::None : command_;
     if (command != Command::None) {
       if (target_deg) *target_deg = command_target_deg_;
-      if (input_advance_deg) *input_advance_deg = command_input_advance_deg_;
+      if (input_peak_percent) *input_peak_percent = command_input_peak_percent_;
       command_ = Command::None;
     }
     portEXIT_CRITICAL(&mux_);
@@ -315,7 +315,7 @@ class RunControlWorker {
   mutable portMUX_TYPE mux_ = portMUX_INITIALIZER_UNLOCKED;
   bool active_ = false, stop_requested_ = false;
   Command command_ = Command::None;
-  float command_input_advance_deg_ = autonomous_input_angle::kDefaultDeg;
+  float command_input_peak_percent_ = autonomous_input_percent::kDefaultPercent;
   float command_target_deg_ = Config::ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG;
   CommandState command_state_;
   RunControlSnapshot snapshot_;

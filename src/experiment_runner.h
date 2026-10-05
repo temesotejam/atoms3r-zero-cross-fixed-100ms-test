@@ -6,7 +6,7 @@
 #include "beta_phase_controller.h"
 #include "beta_turn_fast_controller.h"
 #include "config.h"
-#include "autonomous_input_angle.h"
+#include "autonomous_input_percent.h"
 #include "control_math_cache.h"
 #include "imu_manager.h"
 #include "log_types.h"
@@ -44,8 +44,8 @@ public:
   bool startEnergyControlV0Capture();
   bool startEnergyControlAutonomousCapture();
   bool setEnergyControlAutonomousTarget(float target_deg);
-  bool setEnergyControlAutonomousInputAngle(float advance_deg);
-  float energyControlAutonomousInputAngleDeg() const { return energy_control_autonomous_input_advance_deg_; }
+  bool setEnergyControlAutonomousInputPeakPercent(float peak_percent);
+  float energyControlAutonomousInputPeakPercent() const { return energy_control_autonomous_input_peak_percent_; }
   void zeroAngleNow();
   bool zeroCurrentRollDisplay();
   bool setCurrentRollTarget(float target_deg);
@@ -404,7 +404,7 @@ private:
   EnergyControlAutonomousPhase energy_control_autonomous_phase_ = EnergyControlAutonomousPhase::IDLE;
   EnergyControlAutonomousHalfCycleState energy_control_autonomous_half_cycle_state_ =
       EnergyControlAutonomousHalfCycleState::WAIT_PEAK;
-  float energy_control_autonomous_input_advance_deg_ = autonomous_input_angle::kDefaultDeg;
+  float energy_control_autonomous_input_peak_percent_ = autonomous_input_percent::kDefaultPercent;
   float energy_control_autonomous_target_peak_deg_ = Config::ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG;
   float energy_control_autonomous_integral_plus_mA_s_ = 0.0f;
   float energy_control_autonomous_integral_minus_mA_s_ = 0.0f;

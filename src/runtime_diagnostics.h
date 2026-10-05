@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-#define RUNTIME_VERSION "0.47.36-angle-trigger-1000mA-100ms"
+#define RUNTIME_VERSION "0.47.37-peak-percent-trigger-1000mA-100ms"
 
 namespace RuntimeDiag {
 struct MemorySnapshot { uint32_t at_ms, internal_free, internal_min, largest, dma_free, psram_free; };

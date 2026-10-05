@@ -91,7 +91,7 @@ bool WebUi::stopServer() {
 }
 bool WebUi::queueStart() {
   start_command_id_ = control_->commandState().submitted + 1;
-  start_submitted_ = control_->request(RunControlWorker::Command::Start, start_target_deg_, start_input_advance_deg_);
+  start_submitted_ = control_->request(RunControlWorker::Command::Start, start_target_deg_, start_input_peak_percent_);
   return start_submitted_;
 }
 OfflineRunSession::StartResult WebUi::startResult() const {
@@ -143,15 +143,15 @@ void WebUi::command(RunControlWorker::Command cmd) {
         !autonomous_target::parse(server_->arg("target_deg").c_str(), target_deg)) {
       server_->send(400, "text/plain", "target_deg_8_10_12_required_reload_page"); return;
     }
-    float input_advance_deg;
-    if (!server_->hasArg("input_advance_deg") ||
-        !autonomous_input_angle::parse(server_->arg("input_advance_deg").c_str(), input_advance_deg)) {
-      server_->send(400, "text/plain", "input_advance_deg_0_to_10_required_reload_page"); return;
+    float input_peak_percent;
+    if (!server_->hasArg("input_peak_percent") ||
+        !autonomous_input_percent::parse(server_->arg("input_peak_percent").c_str(), input_peak_percent)) {
+      server_->send(400, "text/plain", "input_peak_percent_0_to_100_required_reload_page"); return;
     }
     const bool ok = offline_.queue(millis());
     if (ok) {
       start_target_deg_ = target_deg;
-      start_input_advance_deg_ = input_advance_deg;
+      start_input_peak_percent_ = input_peak_percent;
       start_submitted_ = cancel_sent_ = false;
       RuntimeDiag::setRunActive(true);
     }
@@ -184,7 +184,7 @@ void WebUi::status() {
   json += ",\"mekf\":" + mekfAttitudeJson(s.mekf_attitude, micros(), s.imu_ok);
   json += ",\"steering\":{\"profile\":\"disabled\",\"enabled\":false,\"feedback_enabled\":false,\"heading_enabled\":false,\"response_check_enabled\":false,\"delta_deg\":0}";
   json += ",\"target_deg\":" + num(s.target_deg);
-  json += ",\"input_advance_deg\":" + num(s.input_advance_deg);
+  json += ",\"input_peak_percent\":" + num(s.input_peak_percent);
   json += ",\"motor_mA\":" + String(s.motor_cmd_mA) + ",\"actual_mA\":" + String(s.actual_current_mA);
   json += ",\"battery_mV\":" + String(s.battery_mV);
   json += ",\"imu_ok\":" + String(s.imu_ok ? "true" : "false") + ",\"roller_ok\":" + String(s.roller_ok ? "true" : "false");

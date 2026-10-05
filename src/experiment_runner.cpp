@@ -923,11 +923,11 @@ bool ExperimentRunner::setEnergyControlAutonomousTarget(float target_deg) {
   return true;
 }
 
-bool ExperimentRunner::setEnergyControlAutonomousInputAngle(float advance_deg) {
-  if (running() || !autonomous_input_angle::valid(advance_deg)) {
-    status_.last_error = "input_angle_invalid_or_running"; return false;
+bool ExperimentRunner::setEnergyControlAutonomousInputPeakPercent(float peak_percent) {
+  if (running() || !autonomous_input_percent::valid(peak_percent)) {
+    status_.last_error = "input_percent_invalid_or_running"; return false;
   }
-  energy_control_autonomous_input_advance_deg_ = advance_deg;
+  energy_control_autonomous_input_peak_percent_ = peak_percent;
   status_.last_error = ""; return true;
 }
 
@@ -1197,7 +1197,7 @@ void ExperimentRunner::beginStartSync(uint32_t now_ms) {
                     passive_capture_mode_, q1_shadow_run_target_peak_abs_deg_, q_ident_mode_,
                     q_ident_mode_ ? static_cast<uint8_t>(q_ident_run_schedule_id_ + 1) : 0,
                      energy_control_v0_mode_, energy_control_autonomous_mode_,
-                     energy_control_autonomous_input_advance_deg_);
+                     energy_control_autonomous_input_peak_percent_);
   last_log_us_ = 0;
   status_.state = ExperimentState::START_SYNC;
   status_.sync_event_id = 1;
@@ -2661,6 +2661,8 @@ void ExperimentRunner::updateEnergyControlAutonomousMotion(uint32_t now_ms) {
     return;
   }
   const float before_deg = energy_control_autonomous_previous_detector_relative_angle_deg_;
+  const bool was_waiting_for_peak = energy_control_autonomous_half_cycle_state_ ==
+      EnergyControlAutonomousHalfCycleState::WAIT_PEAK;
   const bool physical_event_suppressed = status_.pulse_active ||
       energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::PULSE_ACTIVE;
   // Estimators, comparison diagnostics and detector history stay live during a
@@ -2670,11 +2672,20 @@ void ExperimentRunner::updateEnergyControlAutonomousMotion(uint32_t now_ms) {
     updateEnergyControlAutonomousPeakTracker(now_ms, peak_relative_angle_deg, rate_dps);
   }
   const int8_t peak_side = energy_control_autonomous_last_peak_side_;
-  const float threshold_deg = peak_side * energy_control_autonomous_input_advance_deg_;
+  const float threshold_deg = peak_side * energy_control_autonomous_last_peak_amplitude_deg_ *
+      (energy_control_autonomous_input_peak_percent_ * 0.01f);
+  const bool peak_just_confirmed = was_waiting_for_peak &&
+      energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS;
+  // At 100% (or a threshold already passed during peak confirmation), fire
+  // once return is confirmed. The peak cannot be known at its exact extremum.
+  const bool confirmation_input = peak_just_confirmed &&
+      energy_control_autonomous_input_peak_percent_ > 0 && rate_dps * peak_side < 0 &&
+      detector_relative_angle_deg * peak_side > 0 &&
+      fabsf(detector_relative_angle_deg) <= fabsf(threshold_deg);
   const bool crossing = rate_dps * peak_side < 0.0f &&
       ((peak_side < 0 && before_deg < threshold_deg && detector_relative_angle_deg >= threshold_deg) ||
        (peak_side > 0 && before_deg > threshold_deg && detector_relative_angle_deg <= threshold_deg));
-  if (!physical_event_suppressed && crossing &&
+  if (!physical_event_suppressed && (crossing || confirmation_input) &&
       energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS &&
       (energy_control_autonomous_phase_ == EnergyControlAutonomousPhase::ENERGY_CONTROL ||
        energy_control_autonomous_phase_ == EnergyControlAutonomousPhase::HOLD) &&
@@ -2682,7 +2693,7 @@ void ExperimentRunner::updateEnergyControlAutonomousMotion(uint32_t now_ms) {
       !energy_control_autonomous_zero_cross_consumed_for_peak_) {
     const float before_distance = fabsf(before_deg - threshold_deg);
     const float denominator = before_distance + fabsf(detector_relative_angle_deg - threshold_deg);
-    const float alpha = denominator > 0.0f ? before_distance / denominator : 0.5f;
+    const float alpha = crossing && denominator > 0.0f ? before_distance / denominator : 1.0f;
     const float interpolated_time_ms = static_cast<float>(energy_control_autonomous_previous_detector_test_ms_) +
         alpha * static_cast<float>(t_test_ms - energy_control_autonomous_previous_detector_test_ms_);
     const float interpolated_rate_dps = energy_control_autonomous_previous_detector_rate_dps_ +

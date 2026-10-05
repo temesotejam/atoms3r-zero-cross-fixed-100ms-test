@@ -88,14 +88,16 @@ void setup(ExperimentRunner& r,PsramLogger& log,ImuManager& imu,Roller485Manager
 int main(){
  PsramLogger log;ImuManager imu;Roller485Manager roller;
  solver_audit::Buffer<128> audits;log.solver_audit_=&audits;log.sealed_=false;
- // Real production angle decision at 0, 1 and 10 degrees, both directions,
+ // Real percentage decisions at different peaks, both directions,
  // independent of angular speed. Assert one fixed pulse and correct interpolation.
  quiet=true;
- for(float lead : {0.f,1.f,10.f})for(int side : {-1,1})for(float speed : {10.f,40.f}) {
+ for(float percent : {0.f,25.f,50.f,75.f})for(float peak : {4.f,8.f,12.f})
+ for(int side : {-1,1})for(float speed : {10.f,40.f}) {
+   const float lead=peak*percent*.01f;
    ExperimentRunner p;setup(p,log,imu,roller);roller_ok=write_ok=true;
-   p.energy_control_autonomous_input_advance_deg_=lead;
+   p.energy_control_autonomous_input_peak_percent_=percent;
    p.energy_control_autonomous_last_peak_side_=side;
-   p.energy_control_autonomous_last_peak_amplitude_deg_=lead+2;
+   p.energy_control_autonomous_last_peak_amplitude_deg_=peak;
    host_us=14000000;imu.reading_.last_gyro_update_us=host_us;
    imu.reading_.gyro_sequence=1;imu.reading_.gy_dps=-side*speed/Config::MEKF_GYRO_Y_SCALE;
    p.status_.pitch_mekf_measurement_relative_deg=side*(lead+.1f);
@@ -115,11 +117,42 @@ int main(){
    p.updateEnergyControlAutonomousMotion(millis());assert(outputs==n+1);
    host_us+=100000;p.updateEnergyControlAutonomousPulse(millis());assert(!p.status_.pulse_active);
  }
+ // Use the actual peak tracker: 100% and 99% fire at return confirmation,
+ // 90% waits for its threshold. This includes the first post-start-kick peak.
+ for(float percent : {90.f,99.f,100.f})for(int side : {-1,1}) {
+   ExperimentRunner p;setup(p,log,imu,roller);roller_ok=write_ok=true;
+   p.energy_control_autonomous_input_peak_percent_=percent;
+   p.energy_control_autonomous_phase_=Phase::WAIT_FIRST_PEAK;
+   p.energy_control_autonomous_half_cycle_state_=Half::WAIT_PEAK;
+   p.energy_control_autonomous_last_peak_valid_=false;
+   p.resetEnergyControlAutonomousPeakTracker(true);
+   host_us=14000000;const unsigned n=outputs;
+   for(unsigned i=0;i<=3;++i) {
+     host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+     imu.reading_.gy_dps=i?-side*30.f/Config::MEKF_GYRO_Y_SCALE:0;
+     p.status_.pitch_mekf_measurement_relative_deg=side*(8.f-.1f*i);
+     p.updateDisplayedAngles(imu.reading_);p.updateEnergyControlAutonomousMotion(millis());
+     if(i<3)assert(outputs==n);
+   }
+   assert(p.energy_control_autonomous_last_peak_amplitude_deg_==8.f);
+   if(percent>=99) {
+     assert(outputs==n+1 && p.status_.pulse_active);
+     assert(last_zero.detector_crossing_alpha==1.f);
+   } else {
+     assert(outputs==n && !p.status_.pulse_active);
+     host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+     p.status_.pitch_mekf_measurement_relative_deg=side*7.1f;
+     p.updateDisplayedAngles(imu.reading_);p.updateEnergyControlAutonomousMotion(millis());
+     assert(outputs==n+1 && p.status_.pulse_active);
+   }
+   assert(last_zero.command_current_mA==1000 && last_zero.pulse_width_ms==100);
+ }
  // Outward motion cannot fire. A sub-threshold peak skips output at centre
  // and rearms for the next peak instead of firing late at the wrong angle.
  for(int side : {-1,1}) {
    ExperimentRunner p;setup(p,log,imu,roller);
-   p.energy_control_autonomous_input_advance_deg_=10;
+   p.energy_control_autonomous_input_peak_percent_=80;
+   p.energy_control_autonomous_last_peak_amplitude_deg_=10;
    p.energy_control_autonomous_last_peak_side_=side;
    const unsigned n=outputs;host_us=16000000;
    imu.reading_.last_gyro_update_us=host_us;imu.reading_.gy_dps=side*30.f/Config::MEKF_GYRO_Y_SCALE;

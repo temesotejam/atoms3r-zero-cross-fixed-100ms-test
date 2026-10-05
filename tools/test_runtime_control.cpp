@@ -19,7 +19,7 @@ static bool step(void* p) {
 static void capture(void* p,RunControlSnapshot& s) {
   s.running=static_cast<Model*>(p)->running;s.state_id=s.running?3:2;host_us+=100;
   s.target_deg=static_cast<Model*>(p)->target;
-  s.input_advance_deg=static_cast<Model*>(p)->angle;
+  s.input_peak_percent=static_cast<Model*>(p)->angle;
 }
 int main(){
   for(const char* bad : {"", "9", "0", "-10", "14", "10junk", "nan", "inf", "1e999", "1e-999"}) {
@@ -31,11 +31,11 @@ int main(){
   assert(autonomous_target::parse("8",parsed)&&parsed==8);
   assert(autonomous_target::parse("10.0",parsed)&&parsed==10);
   assert(autonomous_target::parse("12",parsed)&&parsed==12);
-  for(const char* bad : {"", "-0.1", "10.1", "nan", "inf", "1junk", "1e999", "1e-999"}) {
-    float angle=2;assert(!autonomous_input_angle::parse(bad,angle)&&angle==2);
+  for(const char* bad : {"", "-0.1", "100.1", "nan", "inf", "1junk", "1e999", "1e-999"}) {
+    float angle=2;assert(!autonomous_input_percent::parse(bad,angle)&&angle==2);
   }
-  for(const char* good : {"0", "0.1", "1", "10"}) {
-    float angle=-1;assert(autonomous_input_angle::parse(good,angle));
+  for(const char* good : {"0", "1", "50", "100"}) {
+    float angle=-1;assert(autonomous_input_percent::parse(good,angle));
   }
   RunControlWorker w;Model m;m.worker=&w;
   assert(!w.request(RunControlWorker::Command::Start));
@@ -46,13 +46,13 @@ int main(){
   assert(!w.request(RunControlWorker::Command::Start,INFINITY));
   assert(!w.commandState().pending&&w.commandState().submitted==0);
   assert(!w.request(RunControlWorker::Command::Start,10,NAN));
-  assert(!w.request(RunControlWorker::Command::Start,10,10.1f));
-  assert(w.request(RunControlWorker::Command::Start,10,2.5f));
+  assert(!w.request(RunControlWorker::Command::Start,10,100.1f));
+  assert(w.request(RunControlWorker::Command::Start,10,65.0f));
   assert(!w.request(RunControlWorker::Command::Start,12)); // cannot replace accepted target
   assert(!w.request(RunControlWorker::Command::Clear)); // pending start blocks clear
   w.oneStep();assert(w.active()&&w.commandState().ok);
   assert(m.target==10&&w.snapshot().target_deg==10);
-  assert(m.angle==2.5f&&w.snapshot().input_advance_deg==2.5f);
+  assert(m.angle==65.0f&&w.snapshot().input_peak_percent==65.0f);
   assert(w.commandPublished(w.commandState().completed));
   assert(!w.request(RunControlWorker::Command::Start));
   assert(!w.request(RunControlWorker::Command::Clear));
@@ -66,7 +66,7 @@ int main(){
   assert(control_work::profile.stages[0][static_cast<uint8_t>(control_work::Stage::Owner)].count==profile_done.count);
   assert(w.request(RunControlWorker::Command::Start,12));
   assert(w.requestStop());w.oneStep();assert(!w.active()&&!w.commandState().pending);
-  assert(m.target==10 && m.angle==2.5f); // cancelled START never changes the applied target
+  assert(m.target==10 && m.angle==65.0f); // cancelled START never changes the applied target
   assert(!w.commandState().ok); // STOP cancels queued START
   assert(w.request(RunControlWorker::Command::Clear));w.oneStep();assert(!w.active());
   w.beginRunAudit();w.last_step_start_us_=UINT32_MAX-200;host_us=300;
