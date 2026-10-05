@@ -59,6 +59,8 @@ RollerTelemetry Roller485Manager::telemetrySnapshot()const{
 void PsramLogger::addEnergyControlAutonomousPeakEvent(const EnergyControlAutonomousPeakEvent& e){++peak_events;last_peak=e;emit(e);}
 void PsramLogger::addEnergyControlAutonomousZeroCrossEvent(const EnergyControlAutonomousZeroCrossEvent& e){if(e.output_executed){assert(e.pulse_width_ms==Config::ENERGY_CONTROL_AUTONOMOUS_FIXED_TEST_PULSE_MS);assert(e.command_current_mA==Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);}last_zero=e;++zero_events;outputs+=e.output_executed;rejected+=!e.valid;emit(e);}
 void PsramLogger::addTimingProbeEvent(const TimingProbeEvent& e){emit(e);}
+void ExperimentRunner::updateComparisonDisplayAngles(){}
+void ExperimentRunner::updateMekfComparisonRelativeAngles(){}
 void ExperimentRunner::requestEmergencyStop(const char*){status_.emergency_stop=true;stopMotor();}
 void state(const ExperimentRunner& r){
 '''
@@ -86,6 +88,23 @@ void setup(ExperimentRunner& r,PsramLogger& log,ImuManager& imu,Roller485Manager
 int main(){
  PsramLogger log;ImuManager imu;Roller485Manager roller;
  solver_audit::Buffer<128> audits;log.solver_audit_=&audits;log.sealed_=false;
+ // Production projection crosses on both sides while posterior angle has
+ // not crossed. Bias correction is included; measurement/peak angle is intact.
+ for(int side : {-1,1}) {
+   ExperimentRunner p;setup(p,log,imu,roller);
+   ImuReading reading{};p.status_.mekf_bias_y_dps=2;
+   reading.gy_dps=side*30.f/Config::MEKF_GYRO_Y_SCALE+2;
+   p.status_.pitch_mekf_measurement_relative_deg=-side*.40f;
+   p.updateDisplayedAngles(reading);
+   assert(p.status_.pitch_mekf_detector_relative_deg*side<0);
+   p.status_.pitch_mekf_measurement_relative_deg=-side*.38f;
+   p.updateDisplayedAngles(reading);
+   assert(p.status_.pitch_mekf_detector_relative_deg*side>0);
+   assert(p.status_.pitch_mekf_measurement_relative_deg==-side*.38f);
+   assert(fabsf(p.status_.pitch_mekf_detector_relative_deg-side*.01f)<1e-5f);
+   p.energy_control_autonomous_mode_=false;p.updateDisplayedAngles(reading);
+   assert(p.status_.pitch_mekf_detector_relative_deg==p.status_.pitch_mekf_measurement_relative_deg);
+ }
  // Independent accepted crossings, all integer widths, both sides, residual
  // current signs, fresh voltage changes, clipping, invalid state and I/O failure.
  for(unsigned i=0;i<20000;++i){
@@ -134,7 +153,7 @@ int main(){
   imu.reading_.gyro_sequence=i+1;imu.reading_.last_gyro_update_us=host_us;
   imu.reading_.gy_dps=rate/Config::MEKF_GYRO_Y_SCALE;
   r.status_.pitch_mekf_measurement_relative_deg=8*sinf(phase);
-  r.status_.pitch_mekf_detector_relative_deg=r.status_.pitch_mekf_measurement_relative_deg+rate*0.003f;
+  r.status_.pitch_mekf_detector_relative_deg=r.status_.pitch_mekf_measurement_relative_deg+rate*0.013f;
   r.updateEnergyControlAutonomousMotion(millis());
   emit(audits.count());for(unsigned k=0;k<audits.count();++k)emit(audits.at(k));
   r.updateEnergyControlAutonomousPulse(millis());state(r);
@@ -198,11 +217,11 @@ with tempfile.TemporaryDirectory(prefix='motion-speed-') as tmp:
             (p/'experiment_runner.h').write_text(frozen['header'])
             (p/'direct_q_solver.h').write_text(frozen['direct_q'])
             methods=frozen['methods'].values()
-        else:methods=[method(n) for n in frozen['methods']]
+        else:methods=[method(n) for n in [*frozen['methods'], 'updateDisplayedAngles']]
         (p/'test.cpp').write_text(cpp+'\n'+'\n'.join(methods))
         command=['g++','-std=c++17','-Os','-ffp-contract=off','-Wall','-Wextra','-Werror',
                  '-I'+str(p),'-I'+str(ROOT/'tools/host_v46o'),'-I'+str(ROOT/'src'),str(p/'test.cpp'),
-                 str(ROOT/'src/mekf6.cpp'),str(ROOT/'src/control_latency.cpp'),
+                 str(ROOT/'src/mekf6.cpp'),str(ROOT/'src/control_latency.cpp'),str(ROOT/'src/control_work_profile.cpp'),
                  str(ROOT/'tools/fixtures/adafruit_ahrs_2_4_0/Adafruit_AHRS_Madgwick.cpp'),
                  *(['-DAMPLITUDE_ONLY_INTEGRATION=1'] if mode!='reference' else []),
                  '-o',str(p/'test')]

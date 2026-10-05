@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-#define RUNTIME_VERSION "0.47.34-zero-cross-fixed-1000mA-100ms"
+#define RUNTIME_VERSION "0.47.35-zero-cross-advance10ms-1000mA-100ms"
 
 namespace RuntimeDiag {
 struct MemorySnapshot { uint32_t at_ms, internal_free, internal_min, largest, dma_free, psram_free; };

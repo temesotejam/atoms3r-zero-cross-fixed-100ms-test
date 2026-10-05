@@ -546,15 +546,16 @@ void ExperimentRunner::updateDisplayedAngles(const ImuReading& r) {
   // V46z comparison-zero end
   // V46ac delay compensation begin
   // Video comparison stays on the unpredicted posterior measurement-relative
-  // angle. Autonomous timing gets a lightweight projection fixed at 3 ms to
-  // compensate decision + actuator-current latency.
+  // angle. Timing projects 3 ms for latency plus 10 ms for this early-input
+  // experiment. Peaks continue to use the unprojected posterior angle.
   status_.pitch_mekf_detector_relative_deg =
       status_.pitch_mekf_measurement_relative_deg;
   if (energy_control_autonomous_mode_) {
     const float mekf_pitch_rate_dps =
         (r.gy_dps - status_.mekf_bias_y_dps) * Config::MEKF_GYRO_Y_SCALE;
     const float compensation_s =
-        static_cast<float>(Config::ENERGY_CONTROL_AUTONOMOUS_TIMING_COMPENSATION_US) * 1.0e-6f;
+        static_cast<float>(Config::ENERGY_CONTROL_AUTONOMOUS_TIMING_COMPENSATION_US +
+            Config::ENERGY_CONTROL_AUTONOMOUS_INPUT_ADVANCE_US) * 1.0e-6f;
     status_.pitch_mekf_detector_relative_deg =
         (isfinite(status_.pitch_mekf_measurement_relative_deg) && isfinite(mekf_pitch_rate_dps)
             ? status_.pitch_mekf_measurement_relative_deg + mekf_pitch_rate_dps * compensation_s
