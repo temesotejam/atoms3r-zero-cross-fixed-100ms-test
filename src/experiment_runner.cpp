@@ -930,6 +930,13 @@ bool ExperimentRunner::setEnergyControlAutonomousInputPeakPercent(float peak_per
   energy_control_autonomous_input_peak_percent_ = peak_percent;
   status_.last_error = ""; return true;
 }
+bool ExperimentRunner::setEnergyControlAutonomousInputCurrentMa(int16_t current_mA) {
+  if (running() || !autonomous_input_current::valid(current_mA)) {
+    status_.last_error = "input_current_invalid_or_running"; return false;
+  }
+  energy_control_autonomous_input_current_mA_ = current_mA;
+  status_.last_error = ""; return true;
+}
 
 const char* ExperimentRunner::energyControlAutonomousPhaseName() const {
   switch (energy_control_autonomous_phase_) {
@@ -994,7 +1001,7 @@ bool ExperimentRunner::startEnergyControlAutonomousCapture() {
   q_probe_schedule_id_ = Config::ZERO_CROSS_CALIBRATION_Q_PROBE_SCHEDULE_A;
   control_target_peak_deg_ = energy_control_autonomous_target_peak_deg_;
   // Autonomous current is intentionally independent of Q_IDENT scheduling.
-  zero_cross_fixed_current_mA_ = Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA;
+  zero_cross_fixed_current_mA_ = energy_control_autonomous_input_current_mA_;
   zero_cross_fixed_pulse_ms_ = 0;
   stopMotor();
   status_.run_id++;
@@ -1191,7 +1198,9 @@ void ExperimentRunner::beginStartSync(uint32_t now_ms) {
   updateMekfComparisonRelativeAngles();
   // V46z comparison-zero end
   run_start_us_ = micros();
-  logger_->startRun(status_.run_id, run_start_us_, status_.current_mA_setting, status_.pulse_width_ms_setting,
+  logger_->startRun(status_.run_id, run_start_us_,
+                    energy_control_autonomous_mode_ ? energy_control_autonomous_input_current_mA_ : status_.current_mA_setting,
+                    status_.pulse_width_ms_setting,
                     status_.input_interval_ms, identification_mode_,
                     static_cast<uint8_t>(q_run_mode_), centi(control_target_peak_deg_), q_probe_schedule_id_,
                     passive_capture_mode_, q1_shadow_run_target_peak_abs_deg_, q_ident_mode_,
@@ -2400,7 +2409,7 @@ bool ExperimentRunner::beginEnergyControlAutonomousPulse(uint32_t now_ms, uint32
   const uint32_t begin_t0_us = micros();
   energy_control_autonomous_pulse_authorized_ = true;
   const int16_t command_current_mA = static_cast<int16_t>(
-      direction * Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);
+      direction * energy_control_autonomous_input_current_mA_);
   const uint32_t set_current_t0_us = micros();
   const bool set_current_ok = roller_->setCurrentMa(command_current_mA);
   const uint32_t set_current_us = static_cast<uint32_t>(micros() - set_current_t0_us);
@@ -2411,7 +2420,7 @@ bool ExperimentRunner::beginEnergyControlAutonomousPulse(uint32_t now_ms, uint32
   }
 
   const uint32_t state_t0_us = micros();
-  status_.current_mA_setting = Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA;
+  status_.current_mA_setting = energy_control_autonomous_input_current_mA_;
   status_.pulse_width_ms_setting = pulse_width_ms;
   status_.motor_cmd_mA = command_current_mA;
   status_.pulse_direction = direction;
@@ -2429,8 +2438,8 @@ bool ExperimentRunner::beginEnergyControlAutonomousPulse(uint32_t now_ms, uint32
   const float v = status_.beta_model_vbat_mV > 0 ? status_.beta_model_vbat_mV / 1000.0f :
       Config::MODEL_VBAT_REFERENCE_V;
   const float target_current_mA = direction * predictCurrentGoalMa(
-      Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA, v);
-  const float tau_s = predictRiseTauS(Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);
+      energy_control_autonomous_input_current_mA_, v);
+  const float tau_s = predictRiseTauS(energy_control_autonomous_input_current_mA_);
   const float width_s = static_cast<float>(pulse_width_ms) / 1000.0f;
   predicted_signed_current_end_mA_ = target_current_mA +
       (i0 - target_current_mA) * expf(-width_s / tau_s);
@@ -2455,7 +2464,7 @@ bool ExperimentRunner::beginEnergyControlAutonomousStartKickPulse(uint32_t now_m
   const uint32_t begin_t0_us = micros();
   energy_control_autonomous_pulse_authorized_ = true;
   const int16_t command_current_mA = static_cast<int16_t>(
-      direction * Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA);
+      direction * energy_control_autonomous_input_current_mA_);
   const uint32_t set_current_t0_us = micros();
   const bool set_current_ok = roller_->setCurrentMa(command_current_mA);
   const uint32_t set_current_us = static_cast<uint32_t>(micros() - set_current_t0_us);
@@ -2466,7 +2475,7 @@ bool ExperimentRunner::beginEnergyControlAutonomousStartKickPulse(uint32_t now_m
   }
 
   const uint32_t state_t0_us = micros();
-  status_.current_mA_setting = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA;
+  status_.current_mA_setting = energy_control_autonomous_input_current_mA_;
   status_.pulse_width_ms_setting = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS;
   status_.motor_cmd_mA = command_current_mA;
   status_.pulse_direction = direction;
@@ -2483,8 +2492,8 @@ bool ExperimentRunner::beginEnergyControlAutonomousStartKickPulse(uint32_t now_m
   const float v = status_.beta_model_vbat_mV > 0 ? status_.beta_model_vbat_mV / 1000.0f :
       Config::MODEL_VBAT_REFERENCE_V;
   const float target_current_mA = direction * predictCurrentGoalMa(
-      Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA, v);
-  const float tau_s = predictRiseTauS(Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA);
+      energy_control_autonomous_input_current_mA_, v);
+  const float tau_s = predictRiseTauS(energy_control_autonomous_input_current_mA_);
   const float width_s = static_cast<float>(Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS) / 1000.0f;
   predicted_signed_current_end_mA_ = target_current_mA +
       (i0 - target_current_mA) * expf(-width_s / tau_s);
@@ -2516,7 +2525,7 @@ void ExperimentRunner::beginEnergyControlAutonomousStartKick(uint32_t now_ms) {
   event.physical_next_peak_side = 1;
   event.q_command_direction = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_DIRECTION;
   event.vbat_mV = status_.roller_battery_mV;
-  event.command_current_mA = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_CURRENT_MA;
+  event.command_current_mA = energy_control_autonomous_input_current_mA_;
   event.pulse_width_ms = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS;
   event.pulse_start_ms = 0;
   event.pulse_end_ms = Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_PULSE_MS;
@@ -2933,7 +2942,7 @@ void ExperimentRunner::updateEnergyControlAutonomousAtZeroCross(uint32_t t_test_
 
   event.q_available_mA_s = fabsf(predictedChargeMaS(event.i0_estimated_mA,
       event.q_command_direction, static_cast<float>(Config::ENERGY_CONTROL_AUTONOMOUS_MAX_PULSE_MS),
-      Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA));
+      energy_control_autonomous_input_current_mA_));
   if (!isfinite(event.free_next_peak_amplitude_deg) || !isfinite(event.passive_energy_j) ||
       !isfinite(event.target_energy_j) || !isfinite(event.q1_gain_deg_per_mA_s) ||
       event.q1_gain_deg_per_mA_s <= 0.0f || !isfinite(event.q_available_mA_s) ||
@@ -2959,8 +2968,8 @@ void ExperimentRunner::updateEnergyControlAutonomousAtZeroCross(uint32_t t_test_
       : Config::MODEL_VBAT_REFERENCE_V;
   const float fast_signed_target_current_mA =
       static_cast<float>(event.q_command_direction) *
-      predictCurrentGoalMa(Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA, fast_v);
-  const float fast_tau_s = predictRiseTauS(Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);
+      predictCurrentGoalMa(energy_control_autonomous_input_current_mA_, fast_v);
+  const float fast_tau_s = predictRiseTauS(energy_control_autonomous_input_current_mA_);
   // V46s audit begin
   audit.signed_target_current_mA = fast_signed_target_current_mA;
   audit.tau_s = fast_tau_s;
@@ -3028,7 +3037,7 @@ void ExperimentRunner::updateEnergyControlAutonomousAtZeroCross(uint32_t t_test_
   const uint16_t selected_width_ms = Config::ENERGY_CONTROL_AUTONOMOUS_FIXED_TEST_PULSE_MS;
   const float selected_q_mA_s = fabsf(predictedChargeMaS(event.i0_estimated_mA,
       event.q_command_direction, static_cast<float>(selected_width_ms),
-      Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA));
+      energy_control_autonomous_input_current_mA_));
   const float selected_energy_j = selected_width_ms == 0 ? event.passive_energy_j :
       energyControlPotentialJ(energyControlAutonomousCorrectedPrediction(
           event.free_next_peak_amplitude_deg, event.physical_next_peak_side,
@@ -3099,7 +3108,7 @@ void ExperimentRunner::updateEnergyControlAutonomousAtZeroCross(uint32_t t_test_
     return;
   }
   event.pulse_width_ms = selected_width_ms;
-  event.command_current_mA = Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA;
+  event.command_current_mA = energy_control_autonomous_input_current_mA_;
   event.pulse_start_ms = t_test_ms;
   event.pulse_end_ms = t_test_ms + selected_width_ms;
   // v45 labels are copied from the already-selected V7 command. They are
@@ -3135,8 +3144,8 @@ void ExperimentRunner::runEnergyControlAutonomousSolverShadow() {
       : Config::MODEL_VBAT_REFERENCE_V;
   const float signed_target_current_mA =
       static_cast<float>(result.q_command_direction) *
-      predictCurrentGoalMa(Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA, v);
-  const float tau_s = predictRiseTauS(Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);
+      predictCurrentGoalMa(energy_control_autonomous_input_current_mA_, v);
+  const float tau_s = predictRiseTauS(energy_control_autonomous_input_current_mA_);
 
   struct FastCandidate {
     bool valid = false;

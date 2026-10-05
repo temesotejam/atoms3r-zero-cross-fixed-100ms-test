@@ -5,7 +5,7 @@ const storage=new Map(), elements=new Map();
 const canvas={clearRect(){},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){},arc(){},fill(){}};
 const element=id=>{if(!elements.has(id))elements.set(id,{textContent:'',style:{},getContext:()=>canvas});return elements.get(id);};
 const status={state:'READY_TO_MEASURE',ready:true,running:false,downloadable:false,controller_fresh:true,
-  target_deg:8,input_peak_percent:50,boot_id:1,
+  target_deg:8,input_peak_percent:50,input_current_mA:1200,boot_id:1,
   export_phase:'empty',command:{pending:false,submitted:0,completed:0,result:''},foot:{},upright:{}};
 const sessionStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
 const context=vm.createContext({document:{getElementById:element},Date:{now:()=>now},sessionStorage,
@@ -17,6 +17,8 @@ const context=vm.createContext({document:{getElementById:element},Date:{now:()=>
       const target=Number(params.get('target_deg'));assert.ok([8,10,12].includes(target));
       const angle=Number(params.get('input_peak_percent'));assert.ok(angle>=0&&angle<=100);
       if(!failStart)status.input_peak_percent=angle;
+      const current=Number(params.get('input_current_mA'));assert.ok(current>=100&&current<=1200&&current%10===0);
+      if(!failStart)status.input_current_mA=current;
       if(!failStart)status.target_deg=target;
       if(loseReply)throw Error('reply lost after acceptance');
       return failStart ? {ok:false,status:409,text:async()=>'busy'} : {ok:true,text:async()=>'offline_run_queued'};
@@ -34,12 +36,15 @@ vm.runInContext(source,context);
     element('target').value='10';element('input-percent').value=bad;calls=[];
     await vm.runInContext('startOfflineRun()',context);assert.equal(calls.length,0);
   }
-  element('input-percent').value='65';
+  element('input-percent').value='65';element('input-current').value='500';
+  for(const bad of ['', '99', '1201', '555']) { element('input-current').value=bad;calls=[];
+    await vm.runInContext('startOfflineRun()',context);assert.equal(calls.length,0); }
+  element('input-current').value='500';
   element('target').value='10';await vm.runInContext('refresh()',context);
-  assert.equal(element('input-percent').value,'65');
+  assert.equal(element('input-percent').value,'65');assert.equal(element('input-current').value,'500');
   assert.equal(element('target').value,'10'); // polling must not overwrite a user's selection
   calls=[];await vm.runInContext('startOfflineRun()',context);
-  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=10&input_peak_percent=65']);
+  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=10&input_peak_percent=65&input_current_mA=500']);
   assert.equal(element('target').disabled,true);assert.match(element('run-target').textContent,/比較用の記録角度：10°/);
   await vm.runInContext('poll()',context);now+=20000;await vm.runInContext('poll()',context);
   assert.equal(calls.length,1);assert.equal(element('start').disabled,true);
@@ -55,7 +60,8 @@ vm.runInContext(source,context);
   assert.equal(vm.runInContext('offlineMode',context),false);assert.equal(storage.size,0);
   assert.equal(element('download').disabled,false);assert.match(element('message').textContent,/fore_aft_tilt_90deg/);
   assert.match(element('run-target').textContent,/今回の記録角度：10°/);
-  assert.equal(element('input-percent').disabled,true);
+  assert.equal(element('input-percent').disabled,true);assert.equal(element('input-current').disabled,true);
+  assert.match(element('run-percent').textContent,/500 mA/);
   assert.match(element('run-percent').textContent,/65.0%/);
   assert.equal(element('target').disabled,true); // sealed run remains associated with its target
   Object.assign(status,{state:'READY_TO_MEASURE',ready:true,downloadable:false,last_error:''});
@@ -79,7 +85,7 @@ vm.runInContext(source,context);
   deliver({ok:true,json:async()=>status});await staleRefresh;
   assert.equal(vm.runInContext('offlineMode',context),true);
   assert.match(element('connection').textContent,/Wi-Fi接続を維持/);
-  await vm.runInContext('poll()',context);assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=12&input_peak_percent=65']);
+  await vm.runInContext('poll()',context);assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=12&input_peak_percent=65&input_current_mA=500']);
   // Default expiry resumes GETs automatically, including normal completion.
   context.fetch=fetch;now+=31000;
   Object.assign(status,{state:'FINISHED',ready:false,downloadable:true,last_error:''});
@@ -92,11 +98,11 @@ vm.runInContext(source,context);
   Object.assign(status,{state:'READY_TO_MEASURE',ready:true,downloadable:false});
   await vm.runInContext('refresh()',context);assert.equal(element('target').disabled,false);
   element('target').value='8';calls=[];await vm.runInContext('startOfflineRun()',context);
-  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=8&input_peak_percent=65']);
-  vm.runInContext('clearOffline()',context);status.boot_id=2;status.input_peak_percent=50;
+  assert.deepEqual(calls,['/start-energy-control-autonomous?target_deg=8&input_peak_percent=65&input_current_mA=500']);
+  vm.runInContext('clearOffline()',context);status.boot_id=2;status.input_peak_percent=50;status.input_current_mA=1200;
   element('target').value='12';await vm.runInContext('refresh()',context);
   assert.equal(element('target').value,'8');
-  assert.equal(element('input-percent').value,'50');
+  assert.equal(element('input-percent').value,'50');assert.equal(element('input-current').value,'1200');
   console.log('HTTP pause browser: no run polling, stale pre-START response, lost/rejected START, HTTP retry, FINISHED/ESTOP download and restored countdown PASS');
   console.log('Target UI: 8/10/12 request values, invalid selection, polling preservation, run lock, applied result and reboot PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -4,13 +4,13 @@
 #define private public
 #include "../src/run_control_worker.h"
 #undef private
-struct Model {bool running=false;unsigned steps=0;float target=8,angle=1;RunControlWorker* worker=nullptr;};
+struct Model {bool running=false;unsigned steps=0;float target=8,angle=1;int16_t current=1200;RunControlWorker* worker=nullptr;};
 static bool step(void* p) {
   auto& m=*static_cast<Model*>(p); ++m.steps;
   if(m.worker->takeStopRequest()) m.running=false;
-  float target=0,angle=0;
-  const auto command=m.worker->takeCommand(&target,&angle);
-  if(command==RunControlWorker::Command::Start){m.target=target;m.angle=angle;m.running=true;m.worker->beginRunAudit();m.worker->completeCommand(true,"started");
+  float target=0,angle=0;int16_t current=0;
+  const auto command=m.worker->takeCommand(&target,&angle,&current);
+  if(command==RunControlWorker::Command::Start){m.target=target;m.angle=angle;m.current=current;m.running=true;m.worker->beginRunAudit();m.worker->completeCommand(true,"started");
     assert(!m.worker->commandPublished(m.worker->commandState().completed));}
   if(command==RunControlWorker::Command::Clear){m.running=false;m.worker->completeCommand(true,"cleared");}
   if(m.running){const auto t=micros();host_us+=750;m.worker->recordStep(t,100,600,750);}
@@ -20,6 +20,7 @@ static void capture(void* p,RunControlSnapshot& s) {
   s.running=static_cast<Model*>(p)->running;s.state_id=s.running?3:2;host_us+=100;
   s.target_deg=static_cast<Model*>(p)->target;
   s.input_peak_percent=static_cast<Model*>(p)->angle;
+  s.input_current_mA=static_cast<Model*>(p)->current;
 }
 int main(){
   for(const char* bad : {"", "9", "0", "-10", "14", "10junk", "nan", "inf", "1e999", "1e-999"}) {
@@ -37,6 +38,12 @@ int main(){
   for(const char* good : {"0", "1", "50", "100"}) {
     float angle=-1;assert(autonomous_input_percent::parse(good,angle));
   }
+  for(const char* bad : {"", "99", "1201", "555", "100junk", "10000000000"}) {
+    int16_t current=500;assert(!autonomous_input_current::parse(bad,current)&&current==500);
+  }
+  for(const char* good : {"100", "300", "500", "1200"}) {
+    int16_t current=0;assert(autonomous_input_current::parse(good,current));
+  }
   RunControlWorker w;Model m;m.worker=&w;
   assert(!w.request(RunControlWorker::Command::Start));
   assert(w.begin(step,capture,&m));assert(!w.begin(step,capture,&m));
@@ -47,12 +54,15 @@ int main(){
   assert(!w.commandState().pending&&w.commandState().submitted==0);
   assert(!w.request(RunControlWorker::Command::Start,10,NAN));
   assert(!w.request(RunControlWorker::Command::Start,10,100.1f));
-  assert(w.request(RunControlWorker::Command::Start,10,65.0f));
+  assert(!w.request(RunControlWorker::Command::Start,10,65.0f,90));
+  assert(!w.request(RunControlWorker::Command::Start,10,65.0f,1210));
+  assert(w.request(RunControlWorker::Command::Start,10,65.0f,500));
   assert(!w.request(RunControlWorker::Command::Start,12)); // cannot replace accepted target
   assert(!w.request(RunControlWorker::Command::Clear)); // pending start blocks clear
   w.oneStep();assert(w.active()&&w.commandState().ok);
   assert(m.target==10&&w.snapshot().target_deg==10);
   assert(m.angle==65.0f&&w.snapshot().input_peak_percent==65.0f);
+  assert(m.current==500&&w.snapshot().input_current_mA==500);
   assert(w.commandPublished(w.commandState().completed));
   assert(!w.request(RunControlWorker::Command::Start));
   assert(!w.request(RunControlWorker::Command::Clear));

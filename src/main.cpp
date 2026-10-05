@@ -53,6 +53,7 @@ static void captureRunState(void*, RunControlSnapshot& out) {
   out.steering = st.steering;
   out.target_deg = runner.energyControlAutonomousTargetPeakDeg();
   out.input_peak_percent = runner.energyControlAutonomousInputPeakPercent();
+  out.input_current_mA = runner.energyControlAutonomousInputCurrentMa();
   out.led_state = st.led_state; out.sync_event_id = st.sync_event_id;
   out.upright_stable = upright_stable; out.upright_epoch = upright_epoch;
   out.upright_since_us = upright_since_us;
@@ -101,7 +102,9 @@ static bool controlStep(void*) {
   RuntimeDiag::phase(RuntimeDiag::Lane::Control, RuntimeDiag::Phase::ControlCommand);
   float start_target_deg = 0.0f;
   float start_input_peak_percent = autonomous_input_percent::kDefaultPercent;
-  const auto command = run_control.takeCommand(&start_target_deg, &start_input_peak_percent);
+  int16_t start_input_current_mA = autonomous_input_current::kDefaultMa;
+  const auto command = run_control.takeCommand(&start_target_deg, &start_input_peak_percent,
+                                                &start_input_current_mA);
   if (command == RunControlWorker::Command::Start) {
     bool ok = false;
     const char* error = "clear_previous_run_first";
@@ -111,6 +114,7 @@ static bool controlStep(void*) {
       else if (!feet.readyToStart()) error = "foot_camera_and_upright_zero_required";
       else {
         ok = runner.setEnergyControlAutonomousInputPeakPercent(start_input_peak_percent) &&
+            runner.setEnergyControlAutonomousInputCurrentMa(start_input_current_mA) &&
             runner.setEnergyControlAutonomousTarget(start_target_deg) &&
             runner.startEnergyControlAutonomousCapture();
         error = ok ? "started" : runner.status().last_error;

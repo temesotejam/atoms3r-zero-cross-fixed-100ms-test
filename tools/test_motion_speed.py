@@ -40,6 +40,7 @@ cpp=r'''
 #undef private
 static unsigned commands=0,stops=0,zero_events=0,peak_events=0,outputs=0,rejected=0;
 static bool roller_ok=true,write_ok=true,quiet=false;
+static int16_t expected_current=1200;
 static PsramLogger::EnergyControlAutonomousPeakEvent last_peak;
 static PsramLogger::EnergyControlAutonomousZeroCrossEvent last_zero;
 template<class T> void emit(const T& v){if(quiet)return;assert(std::fwrite(&v,sizeof(v),1,stdout)==1);}
@@ -57,7 +58,7 @@ RollerTelemetry Roller485Manager::telemetrySnapshot()const{
   t.current_valid=t.speed_valid=true;t.current_sample_time_us=host_us-700;t.speed_sample_time_us=host_us-1200;return t;
 }
 void PsramLogger::addEnergyControlAutonomousPeakEvent(const EnergyControlAutonomousPeakEvent& e){++peak_events;last_peak=e;emit(e);}
-void PsramLogger::addEnergyControlAutonomousZeroCrossEvent(const EnergyControlAutonomousZeroCrossEvent& e){if(e.output_executed){assert(e.pulse_width_ms==Config::ENERGY_CONTROL_AUTONOMOUS_FIXED_TEST_PULSE_MS);assert(e.command_current_mA==Config::ENERGY_CONTROL_AUTONOMOUS_CURRENT_MA);}last_zero=e;++zero_events;outputs+=e.output_executed;rejected+=!e.valid;emit(e);}
+void PsramLogger::addEnergyControlAutonomousZeroCrossEvent(const EnergyControlAutonomousZeroCrossEvent& e){if(e.output_executed){assert(e.pulse_width_ms==Config::ENERGY_CONTROL_AUTONOMOUS_FIXED_TEST_PULSE_MS);assert(e.command_current_mA==expected_current);}last_zero=e;++zero_events;outputs+=e.output_executed;rejected+=!e.valid;emit(e);}
 void PsramLogger::addTimingProbeEvent(const TimingProbeEvent& e){emit(e);}
 void ExperimentRunner::updateComparisonDisplayAngles(){}
 void ExperimentRunner::updateMekfComparisonRelativeAngles(){}
@@ -88,6 +89,19 @@ void setup(ExperimentRunner& r,PsramLogger& log,ImuManager& imu,Roller485Manager
 int main(){
  PsramLogger log;ImuManager imu;Roller485Manager roller;
  solver_audit::Buffer<128> audits;log.solver_audit_=&audits;log.sealed_=false;
+ // Verify the selected command reaches both normal pulse and start kick.
+ quiet=true;
+ for(int16_t selected : {int16_t(300),int16_t(500),int16_t(1200)}) {
+   ExperimentRunner p;setup(p,log,imu,roller);roller_ok=write_ok=true;
+   p.energy_control_autonomous_input_current_mA_=selected;expected_current=selected;
+   host_us=14000000;
+   assert(p.beginEnergyControlAutonomousPulse(millis(),13000,1,100));
+   assert(p.status_.motor_cmd_mA==selected && p.status_.pulse_width_ms_setting==100);
+   p.stopActivePulse(millis());p.energy_control_autonomous_phase_=Phase::STRONG_START_KICK;
+   assert(p.beginEnergyControlAutonomousStartKickPulse(millis(),Config::ENERGY_CONTROL_AUTONOMOUS_START_KICK_DIRECTION));
+   assert(abs(p.status_.motor_cmd_mA)==selected && p.status_.pulse_width_ms_setting==100);
+ }
+ expected_current=1200;
  // Real percentage decisions at different peaks, both directions,
  // independent of angular speed. Assert one fixed pulse and correct interpolation.
  quiet=true;

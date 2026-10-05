@@ -1,6 +1,6 @@
 {
   "name": "AtomS3R Free-foot Runtime V2",
-  "version": "0.47.39-peak-percent-trigger-1200mA-100ms-15s",
+  "version": "0.47.41-peak-percent-adjustable-current-100ms-15s",
   "builds": [
     {
       "chipFamily": "ESP32-S3",

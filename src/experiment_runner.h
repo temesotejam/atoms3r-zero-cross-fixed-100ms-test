@@ -7,6 +7,7 @@
 #include "beta_turn_fast_controller.h"
 #include "config.h"
 #include "autonomous_input_percent.h"
+#include "autonomous_input_current.h"
 #include "control_math_cache.h"
 #include "imu_manager.h"
 #include "log_types.h"
@@ -45,7 +46,9 @@ public:
   bool startEnergyControlAutonomousCapture();
   bool setEnergyControlAutonomousTarget(float target_deg);
   bool setEnergyControlAutonomousInputPeakPercent(float peak_percent);
+  bool setEnergyControlAutonomousInputCurrentMa(int16_t current_mA);
   float energyControlAutonomousInputPeakPercent() const { return energy_control_autonomous_input_peak_percent_; }
+  int16_t energyControlAutonomousInputCurrentMa() const { return energy_control_autonomous_input_current_mA_; }
   void zeroAngleNow();
   bool zeroCurrentRollDisplay();
   bool setCurrentRollTarget(float target_deg);
@@ -405,6 +408,7 @@ private:
   EnergyControlAutonomousHalfCycleState energy_control_autonomous_half_cycle_state_ =
       EnergyControlAutonomousHalfCycleState::WAIT_PEAK;
   float energy_control_autonomous_input_peak_percent_ = autonomous_input_percent::kDefaultPercent;
+  int16_t energy_control_autonomous_input_current_mA_ = autonomous_input_current::kDefaultMa;
   float energy_control_autonomous_target_peak_deg_ = Config::ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG;
   float energy_control_autonomous_integral_plus_mA_s_ = 0.0f;
   float energy_control_autonomous_integral_minus_mA_s_ = 0.0f;
@@ -597,4 +601,3 @@ private:
   Adafruit_Madgwick filter_beta1_bias_;
   Adafruit_Madgwick filter_dynamic_bias_[Config::DYNAMIC_BETA_COUNT];
 };
-
