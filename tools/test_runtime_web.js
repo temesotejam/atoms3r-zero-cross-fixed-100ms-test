@@ -33,7 +33,7 @@ vm.runInContext(code,context);
   assert.strictEqual(element('start').disabled,false);
   assert(!code.includes('steering-status'));
   const html=fs.readFileSync('web/index.html','utf8');
-  assert.match(html,/角速度ピーク入力は選択値に関係なく1200 mA \/ 100 ms固定/);
+  assert.match(html,/ZEROクロス入力は選択値に関係なく1200 mA \/ 100 ms固定/);
   assert.doesNotMatch(html,/±0.2|応答確認|ジャイロ方位/);
   assert.strictEqual(element('right').textContent,'8.00°'); // Tilting does not invalidate a locked zero.
   assert.strictEqual(element('left').textContent,'-6.00°');

@@ -4,19 +4,19 @@ static const char RUNTIME_HTML[] PROGMEM = R"FREEFOOT(<!doctype html><html lang=
 <style>
 :root{font-family:system-ui,sans-serif;color:#1d293d;background:#eef2f5;font-size:16px}*{box-sizing:border-box}body{max-width:950px;margin:auto;padding:20px}h1{font-size:1.65rem;margin-bottom:4px}h2{font-size:1.08rem}p{line-height:1.6}.muted{color:#546477;font-size:.88rem}.card{background:white;border-radius:14px;padding:20px;margin:16px 0;border:1px solid #d9e1e8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}.value{font-size:2rem;font-variant-numeric:tabular-nums;margin:4px 0}.label{font-size:.85rem;color:#546477}button{padding:13px 18px;border:0;border-radius:8px;background:#174b8e;color:white;font:inherit;cursor:pointer;margin:4px 4px 4px 0}button:disabled{opacity:.4;cursor:default}#stop{background:#b62032}#clear,#cancel{background:#58677a}code,pre{font-family:ui-monospace,monospace}pre{white-space:pre-wrap;font-size:.78rem;overflow-wrap:anywhere}#connection{font-weight:600}progress{width:100%;height:24px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px 4px;border-bottom:1px solid #e1e6eb}canvas{width:100%;height:120px;background:#f3f6fa;border-radius:8px}#message{min-height:26px;color:#9c2636}a{color:#174b8e}
 </style>
-<h1>AtomS3R Free-foot</h1><div class="muted">0.47.40 · 胴体の左右角速度ピークで入力 · 1200 mA / 100 ms固定 · 運転中Web休止 · 足角度はMEKF基準の暫定校正・観測用</div>
+<h1>AtomS3R Free-foot</h1><div class="muted">0.47.39 · 最大角に対する入力割合を調整可能 · ZEROクロス入力 1200 mA / 100 ms固定 · 運転中Web休止 · 足角度はMEKF基準の暫定校正・観測用</div>
 <p id="connection">接続を確認中…</p>
 <section class="card"><div class="grid"><div><div class="label">状態</div><div class="value" id="state">—</div></div><div><div class="label">残り時間</div><div class="value" id="remaining">—</div></div><div><div class="label">胴体の左右揺動 · MEKF</div><div class="value" id="pitch">—</div></div><div><div class="label">指令 / 実測電流</div><div class="value" style="font-size:1.5rem" id="current">—</div></div></div>
 <p id="guide">起動後は静止させてください。LEDが点灯したら直立させ、左右マーカーが見える状態で2秒以上静止します。</p>
 <p><label for="target">比較用の記録角度 </label><select id="target" disabled aria-describedby="target-help" style="font:inherit;padding:10px 14px;border:1px solid #aab8c6;border-radius:8px;background:white"><option value="8" selected>8°</option><option value="10">10°</option><option value="12">12°</option></select></p>
-<p class="muted" id="target-help">選択値はログに保存します。角速度ピーク入力は選択値に関係なく1200 mA / 100 ms固定です。</p>
+<p class="muted" id="target-help">選択値はログに保存します。この試験版のZEROクロス入力は選択値に関係なく1200 mA / 100 ms固定です。</p>
 <p class="muted" id="run-target" role="status">記録角度は測定開始時に保存します。パルス幅は固定です。</p>
-<p hidden><label for="input-percent">直前の最大角の何％で入力するか </label><input id="input-percent" type="number" min="0" max="100" step="1" value="50" disabled aria-describedby="input-percent-help" style="font:inherit;padding:10px 14px;border:1px solid #aab8c6;border-radius:8px;width:110px"> %</p>
-<p class="muted" id="input-percent-help" hidden>旧設定値はこの版の入力判定には使いません。</p>
-<p class="muted" id="run-percent" role="status">胴体の左右角速度が最大になったことを確認して入力します。</p>
+<p><label for="input-percent">直前の最大角の何％で入力するか </label><input id="input-percent" type="number" min="0" max="100" step="1" value="50" disabled aria-describedby="input-percent-help" style="font:inherit;padding:10px 14px;border:1px solid #aab8c6;border-radius:8px;width:110px"> %</p>
+<p class="muted" id="input-percent-help">0〜100%。50%ならピーク8°では戻りの4°、ピーク10°では戻りの5°で入力します。左右それぞれ直前に確認したピークを使います。0%はZEROクロス、100%は折り返し確認直後です。ピーク確認時に設定位置を通過済みなら、確認直後に入力します。設定は開始時に保存し、測定中は変更しません。</p>
+<p class="muted" id="run-percent" role="status">入力割合は測定開始時に確定します。</p>
 <p class="muted">yaw関連機能は停止中です。</p>
 <button id="start" disabled>15秒測定を開始</button><button id="reconnect" style="display:none">終了・Web復帰を確認</button><button id="clear" disabled>ログを消去・次の測定へ</button>
-<div id="message" role="status"></div><p class="muted">開始・終了のLED同期はそれぞれ5秒。制御は既存のAutonomous、左右角速度ピーク確認後に入力、1200mA / 100ms固定パルスです。</p></section>
+<div id="message" role="status"></div><p class="muted">開始・終了のLED同期はそれぞれ5秒。制御は既存のAutonomous、設定角度で入力、1200mA / 100ms固定パルスです。</p></section>
 <p class="muted">運転中もWi-Fiを維持し、Web更新を休止して本体で制御・観測・記録します。前後90°以上の傾斜で停止します。横倒しは姿勢STOPの対象にしません。姿勢を戻しても再始動しません。Wi-Fi接続と画面を保ったままお待ちください。終了後にWeb表示が復帰したらログを保存してください。Web復帰だけではログは消えません。本体の電源断・再起動では未取得のログが失われます。</p>
 <section class="card"><h2>左右足角度 · 胴体に対する相対角</h2><div class="grid"><div><div class="label">右足 · 上段マーカー A</div><div class="value" id="right">—</div></div><div><div class="label">左足 · 下段マーカー B</div><div class="value" id="left">—</div></div><div><div class="label">カメラ実測 / 目標</div><div class="value" style="font-size:1.5rem" id="fps">— / 15 fps</div></div></div>
 <canvas id="markers" width="640" height="120" aria-label="マーカー検出位置。上段が右足、下段が左足。"></canvas>
@@ -207,8 +207,10 @@ function renderOffline() {
   $('state').textContent = 'Web休止中';
   $('run-target').textContent = requestedTargetDeg === null
     ? '比較用の記録角度はWeb復帰後に確認します。'
-    : `比較用の記録角度：${requestedTargetDeg}°（角速度ピーク入力は100 ms固定）`;
-  $('run-percent').textContent = '角速度ピーク確認後に1.2 A・100 msを入力します。';
+    : `比較用の記録角度：${requestedTargetDeg}°（ZEROクロス入力は100 ms固定）`;
+  $('run-percent').textContent = requestedInputPercent === null
+    ? '入力割合はWeb復帰後に確認します。'
+    : `開始要求の入力位置：直前ピーク角の${requestedInputPercent}%（1.2 A・100 ms固定）`;
   $('remaining').textContent = remaining ? `${remaining} s（Web復帰目安）` : '復帰待ち';
   for (const id of ['pitch', 'current', 'right', 'left', 'fps']) $(id).textContent = '—';
   $('guide').textContent = '本体で制御・観測・記録を行います。開始5秒＋測定15秒＋終了5秒が予定時間です。前後90°以上の傾斜でSTOPします。横倒しは姿勢STOPの対象にしません。表示時間はPC側の目安で、実際の進行・終了を確認した値ではありません。';
@@ -268,7 +270,9 @@ function render(s) {
     $('input-percent').value = String(s.input_peak_percent);
     angleInitialized = true; angleBootId = s.boot_id;
   }
-  $('run-percent').textContent = '今回の入力タイミング：胴体の左右角速度ピーク確認後（1.2 A・100 ms固定）';
+  $('run-percent').textContent = s.running || terminal
+    ? `今回の入力位置：直前ピーク角の${format(s.input_peak_percent, 1)}%（1.2 A・100 ms固定）`
+    : '入力割合は測定開始時に確定します。';
   $('run-target').textContent = s.running || terminal
     ? `今回の記録角度：${format(s.target_deg, 0)}°（入力は100 ms固定）`
     : '記録角度は測定開始時に保存します。パルス幅は固定です。';
@@ -354,10 +358,10 @@ async function startOfflineRun() {
   }
   requestedTargetDeg = target;
   requestedInputPercent = inputPercent;
-  commandInFlight = true; setOffline(30000); $('message').textContent = `角速度ピーク入力試験（記録角度${target}°）の開始要求を送信中…`;
+  commandInFlight = true; setOffline(30000); $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を送信中…`;
   try {
     await request(`/start-energy-control-autonomous?target_deg=${target}&input_peak_percent=${inputPercent}`, {method:'POST', kind:'text'});
-    $('message').textContent = `角速度ピーク入力試験（記録角度${target}°）の開始要求を受け付けました。Web休止後に本体が開始条件を確認します。Wi-Fi接続と画面をそのまま保ってお待ちください。`;
+    $('message').textContent = `角度入力試験（直前ピーク角の${inputPercent}%・記録角度${target}°）の開始要求を受け付けました。Web休止後に本体が開始条件を確認します。Wi-Fi接続と画面をそのまま保ってお待ちください。`;
   } catch (error) {
     if (/^\d{3}:/.test(error.message)) { clearOffline(); await refresh(); }
     $('message').textContent = `開始結果の確認: ${error.message}。Web復帰後に本体の結果を確認します。`;

@@ -416,11 +416,6 @@ private:
   float energy_control_autonomous_previous_detector_relative_angle_deg_ = 0.0f;
   float energy_control_autonomous_previous_detector_rate_dps_ = 0.0f;
   uint32_t energy_control_autonomous_previous_detector_test_ms_ = 0;
-  // Angular-speed maximum on the inward leg, reset for each accepted angle peak.
-  bool energy_control_autonomous_speed_peak_started_ = false;
-  float energy_control_autonomous_filtered_abs_rate_dps_ = 0.0f;
-  float energy_control_autonomous_max_abs_rate_dps_ = 0.0f;
-  uint8_t energy_control_autonomous_speed_fall_samples_ = 0;
   bool energy_control_autonomous_zero_cross_consumed_for_peak_ = false;
   bool energy_control_autonomous_last_accepted_zero_cross_valid_ = false;
   uint32_t energy_control_autonomous_last_accepted_zero_cross_ms_ = 0;
@@ -602,3 +597,4 @@ private:
   Adafruit_Madgwick filter_beta1_bias_;
   Adafruit_Madgwick filter_dynamic_bias_[Config::DYNAMIC_BETA_COUNT];
 };
+

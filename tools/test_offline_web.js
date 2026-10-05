@@ -56,7 +56,7 @@ vm.runInContext(source,context);
   assert.equal(element('download').disabled,false);assert.match(element('message').textContent,/fore_aft_tilt_90deg/);
   assert.match(element('run-target').textContent,/今回の記録角度：10°/);
   assert.equal(element('input-percent').disabled,true);
-  assert.match(element('run-percent').textContent,/角速度ピーク確認後/);
+  assert.match(element('run-percent').textContent,/65.0%/);
   assert.equal(element('target').disabled,true); // sealed run remains associated with its target
   Object.assign(status,{state:'READY_TO_MEASURE',ready:true,downloadable:false,last_error:''});
   await vm.runInContext('refresh()',context);element('target').value='12';

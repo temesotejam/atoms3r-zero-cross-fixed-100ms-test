@@ -2299,10 +2299,6 @@ void ExperimentRunner::resetEnergyControlAutonomous() {
   energy_control_autonomous_previous_detector_relative_angle_deg_ = 0.0f;
   energy_control_autonomous_previous_detector_rate_dps_ = 0.0f;
   energy_control_autonomous_previous_detector_test_ms_ = 0;
-  energy_control_autonomous_speed_peak_started_ = false;
-  energy_control_autonomous_filtered_abs_rate_dps_ = 0.0f;
-  energy_control_autonomous_max_abs_rate_dps_ = 0.0f;
-  energy_control_autonomous_speed_fall_samples_ = 0;
   energy_control_autonomous_zero_cross_consumed_for_peak_ = false;
   energy_control_autonomous_last_accepted_zero_cross_valid_ = false;
   energy_control_autonomous_last_accepted_zero_cross_ms_ = 0;
@@ -2617,9 +2613,6 @@ bool ExperimentRunner::recordEnergyControlAutonomousPeak(uint32_t peak_ms, int8_
   energy_control_autonomous_last_peak_ms_ = peak_ms;
   energy_control_autonomous_zero_cross_consumed_for_peak_ = false;
   energy_control_autonomous_half_cycle_state_ = EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS;
-  energy_control_autonomous_speed_peak_started_ = false;
-  energy_control_autonomous_speed_fall_samples_ = 0;
-  energy_control_autonomous_max_abs_rate_dps_ = 0.0f;
   resetEnergyControlAutonomousPeakTracker(false);
   energy_control_autonomous_phase_ = fabsf(event.peak_error_deg) <= Config::TARGET_TOLERANCE_DEG
       ? EnergyControlAutonomousPhase::HOLD : EnergyControlAutonomousPhase::ENERGY_CONTROL;
@@ -2668,6 +2661,8 @@ void ExperimentRunner::updateEnergyControlAutonomousMotion(uint32_t now_ms) {
     return;
   }
   const float before_deg = energy_control_autonomous_previous_detector_relative_angle_deg_;
+  const bool was_waiting_for_peak = energy_control_autonomous_half_cycle_state_ ==
+      EnergyControlAutonomousHalfCycleState::WAIT_PEAK;
   const bool physical_event_suppressed = status_.pulse_active ||
       energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::PULSE_ACTIVE;
   // Estimators, comparison diagnostics and detector history stay live during a
@@ -2677,47 +2672,39 @@ void ExperimentRunner::updateEnergyControlAutonomousMotion(uint32_t now_ms) {
     updateEnergyControlAutonomousPeakTracker(now_ms, peak_relative_angle_deg, rate_dps);
   }
   const int8_t peak_side = energy_control_autonomous_last_peak_side_;
-  bool speed_peak_confirmed = false;
-  if (!physical_event_suppressed && energy_control_autonomous_last_peak_valid_ &&
-      energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS &&
-      rate_dps * peak_side < 0.0f) {
-    const float abs_rate = fabsf(rate_dps);
-    if (!energy_control_autonomous_speed_peak_started_) {
-      energy_control_autonomous_speed_peak_started_ = true;
-      energy_control_autonomous_filtered_abs_rate_dps_ = abs_rate;
-      energy_control_autonomous_max_abs_rate_dps_ = abs_rate;
-    } else {
-      // Smooth isolated gyro spikes; three declining samples and a meaningful
-      // drop from the running maximum confirm that the speed crest has passed.
-      energy_control_autonomous_filtered_abs_rate_dps_ +=
-          0.25f * (abs_rate - energy_control_autonomous_filtered_abs_rate_dps_);
-      const float filtered = energy_control_autonomous_filtered_abs_rate_dps_;
-      if (filtered >= energy_control_autonomous_max_abs_rate_dps_) {
-        energy_control_autonomous_max_abs_rate_dps_ = filtered;
-        energy_control_autonomous_speed_fall_samples_ = 0;
-      } else if (energy_control_autonomous_speed_fall_samples_ < 3) {
-        ++energy_control_autonomous_speed_fall_samples_;
-      }
-      const float min_drop = fmaxf(2.0f, 0.04f * energy_control_autonomous_max_abs_rate_dps_);
-      speed_peak_confirmed = energy_control_autonomous_max_abs_rate_dps_ >= 10.0f &&
-          energy_control_autonomous_speed_fall_samples_ >= 3 &&
-          energy_control_autonomous_max_abs_rate_dps_ - filtered >= min_drop;
-    }
-  }
-  if (!physical_event_suppressed && speed_peak_confirmed &&
+  const float threshold_deg = peak_side * energy_control_autonomous_last_peak_amplitude_deg_ *
+      (energy_control_autonomous_input_peak_percent_ * 0.01f);
+  const bool peak_just_confirmed = was_waiting_for_peak &&
+      energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS;
+  // At 100% (or a threshold already passed during peak confirmation), fire
+  // once return is confirmed. The peak cannot be known at its exact extremum.
+  const bool confirmation_input = peak_just_confirmed &&
+      energy_control_autonomous_input_peak_percent_ > 0 && rate_dps * peak_side < 0 &&
+      detector_relative_angle_deg * peak_side > 0 &&
+      fabsf(detector_relative_angle_deg) <= fabsf(threshold_deg);
+  const bool crossing = rate_dps * peak_side < 0.0f &&
+      ((peak_side < 0 && before_deg < threshold_deg && detector_relative_angle_deg >= threshold_deg) ||
+       (peak_side > 0 && before_deg > threshold_deg && detector_relative_angle_deg <= threshold_deg));
+  if (!physical_event_suppressed && (crossing || confirmation_input) &&
       energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS &&
       (energy_control_autonomous_phase_ == EnergyControlAutonomousPhase::ENERGY_CONTROL ||
        energy_control_autonomous_phase_ == EnergyControlAutonomousPhase::HOLD) &&
       energy_control_autonomous_last_peak_valid_ &&
       !energy_control_autonomous_zero_cross_consumed_for_peak_) {
-    // The historical zero_cross event fields now denote the *confirmed speed
-    // peak trigger*. Confirmation necessarily follows the true speed maximum.
-    updateEnergyControlAutonomousAtZeroCross(t_test_ms, rate_dps, before_deg,
-        detector_relative_angle_deg, 1.0f, static_cast<float>(t_test_ms));
+    const float before_distance = fabsf(before_deg - threshold_deg);
+    const float denominator = before_distance + fabsf(detector_relative_angle_deg - threshold_deg);
+    const float alpha = crossing && denominator > 0.0f ? before_distance / denominator : 1.0f;
+    const float interpolated_time_ms = static_cast<float>(energy_control_autonomous_previous_detector_test_ms_) +
+        alpha * static_cast<float>(t_test_ms - energy_control_autonomous_previous_detector_test_ms_);
+    const float interpolated_rate_dps = energy_control_autonomous_previous_detector_rate_dps_ +
+        alpha * (rate_dps - energy_control_autonomous_previous_detector_rate_dps_);
+    updateEnergyControlAutonomousAtZeroCross(t_test_ms, interpolated_rate_dps, before_deg,
+        detector_relative_angle_deg, alpha, interpolated_time_ms);
   }
-  // A speed crest may occur after angle zero. Only abandon an untriggered
-  // half-cycle once the inward movement itself has ended.
-  if (!physical_event_suppressed && rate_dps * peak_side >= 0.0f &&
+  const bool passed_centre_inward = rate_dps * peak_side < 0.0f &&
+      ((peak_side < 0 && before_deg < 0 && detector_relative_angle_deg >= 0) ||
+       (peak_side > 0 && before_deg > 0 && detector_relative_angle_deg <= 0));
+  if (!physical_event_suppressed && passed_centre_inward &&
       energy_control_autonomous_half_cycle_state_ == EnergyControlAutonomousHalfCycleState::WAIT_ZERO_CROSS &&
       !energy_control_autonomous_zero_cross_consumed_for_peak_) {
     energy_control_autonomous_zero_cross_consumed_for_peak_ = true;
@@ -5892,3 +5879,4 @@ const char* ExperimentRunner::stateName() const {
   }
   return "UNKNOWN";
 }
+
