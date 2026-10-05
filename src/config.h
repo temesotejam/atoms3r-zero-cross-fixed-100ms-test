@@ -92,13 +92,10 @@ static constexpr uint8_t BMI270_ACCEL_ODR_CODE = 0x09;
 static constexpr uint32_t MEKF_CONTROL_PREDICTION_FIXED_US = 2500UL;
 static constexpr uint32_t MEKF_CONTROL_PREDICTION_MAX_US = 10000UL;
 // V46ac autonomous timing compensation begin
-// Lightweight actuator-delay compensation for Autonomous timing only.
-// V46aj: fixed 3.0 ms; no runtime selection or per-run timing setting.
-// It predicts the posterior measurement-relative pitch forward by that delay
-// using the bias-corrected, MEKF-scaled Y gyro rate.
+// Historical V46aj latency value retained for provenance.
+// The adjustable angle-trigger experiment does not use timing projection.
 static constexpr uint32_t ENERGY_CONTROL_AUTONOMOUS_TIMING_COMPENSATION_US = 3000UL;
-// Fixed experiment lead relative to the existing compensated crossing.
-static constexpr uint32_t ENERGY_CONTROL_AUTONOMOUS_INPUT_ADVANCE_US = 10000UL;
+// Angle-trigger experiment uses posterior angle directly; no timing projection.
 // V46ac autonomous timing compensation end
 static constexpr uint8_t ROLLER_IO_TASK_CORE = 0;
 static constexpr uint8_t ROLLER_IO_TASK_PRIORITY = 4;
@@ -126,7 +123,7 @@ static constexpr char ATTITUDE_VALIDATION_REVISION[] = "v46aj_fixed_3ms_compensa
 // V46ak changes observation only. ATTITUDE_VALIDATION_REVISION intentionally remains V46aj.
 static constexpr char AMPLITUDE_CONTROL_OBSERVATION_REVISION[] = "v46ak_pre_input_state_observation_20260920";
 // V46al-R2 previous-peak active control begin
-static constexpr char AMPLITUDE_CONTROL_REVISION[] = "zero_cross_advance10ms_1000mA_100ms_04735_20261005";
+static constexpr char AMPLITUDE_CONTROL_REVISION[] = "angle_trigger_adjustable_1000mA_100ms_04736_20261005";
 static constexpr char AMPLITUDE_CONTROL_BASELINE_SOURCE[] =
     "atoms3r-amplitude-control-v46ak-stable@bb9c5ed07c5ca8b3c6c6b5813b6c2f1b1f57a6ec";
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_PREVIOUS_PEAK_MODEL_REVISION[] =
@@ -283,7 +280,7 @@ static constexpr uint8_t ENERGY_CONTROL_V0_INVALID_EVENT_LOG_OVERFLOW = 12;
 // event policy separates raw detector candidates from accepted physical events
 // so pulse transients cannot self-trigger the next control cycle.
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_MEASUREMENT_MODE[] =
-    "zero_cross_advance10ms_fixed_100ms_1000mA_rwlog30s";
+    "angle_trigger_adjustable_fixed_100ms_1000mA_rwlog30s";
 static constexpr uint32_t ENERGY_CONTROL_AUTONOMOUS_DURATION_MS = 30000UL;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG = 8.0f;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_TARGET_MIN_DEG = 8.0f;

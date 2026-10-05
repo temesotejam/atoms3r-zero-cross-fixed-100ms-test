@@ -88,23 +88,54 @@ void setup(ExperimentRunner& r,PsramLogger& log,ImuManager& imu,Roller485Manager
 int main(){
  PsramLogger log;ImuManager imu;Roller485Manager roller;
  solver_audit::Buffer<128> audits;log.solver_audit_=&audits;log.sealed_=false;
- // Production projection crosses on both sides while posterior angle has
- // not crossed. Bias correction is included; measurement/peak angle is intact.
+ // Real production angle decision at 0, 1 and 10 degrees, both directions,
+ // independent of angular speed. Assert one fixed pulse and correct interpolation.
+ quiet=true;
+ for(float lead : {0.f,1.f,10.f})for(int side : {-1,1})for(float speed : {10.f,40.f}) {
+   ExperimentRunner p;setup(p,log,imu,roller);roller_ok=write_ok=true;
+   p.energy_control_autonomous_input_advance_deg_=lead;
+   p.energy_control_autonomous_last_peak_side_=side;
+   p.energy_control_autonomous_last_peak_amplitude_deg_=lead+2;
+   host_us=14000000;imu.reading_.last_gyro_update_us=host_us;
+   imu.reading_.gyro_sequence=1;imu.reading_.gy_dps=-side*speed/Config::MEKF_GYRO_Y_SCALE;
+   p.status_.pitch_mekf_measurement_relative_deg=side*(lead+.1f);
+   p.updateDisplayedAngles(imu.reading_);
+   assert(p.status_.pitch_mekf_detector_relative_deg==p.status_.pitch_mekf_measurement_relative_deg);
+   const unsigned n=outputs;
+   p.updateEnergyControlAutonomousMotion(millis());assert(outputs==n);
+   host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+   p.status_.pitch_mekf_measurement_relative_deg=side*(lead-.1f);
+   p.updateDisplayedAngles(imu.reading_);p.updateEnergyControlAutonomousMotion(millis());
+   if(outputs!=n+1) std::fprintf(stderr,"lead=%g side=%d speed=%g outputs=%u reason=%u valid=%d before=%g after=%g phase=%u\n",lead,side,speed,outputs,last_zero.reason,last_zero.valid,last_zero.detector_angle_before_deg,last_zero.detector_angle_after_deg,unsigned(p.energy_control_autonomous_half_cycle_state_));
+   assert(outputs==n+1 && p.status_.pulse_active);
+   assert(last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1000);
+   assert(last_zero.physical_next_peak_side==-side);
+   assert(fabsf(last_zero.detector_crossing_alpha-.5f)<1e-5f);
+   host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+   p.updateEnergyControlAutonomousMotion(millis());assert(outputs==n+1);
+   host_us+=100000;p.updateEnergyControlAutonomousPulse(millis());assert(!p.status_.pulse_active);
+ }
+ // Outward motion cannot fire. A sub-threshold peak skips output at centre
+ // and rearms for the next peak instead of firing late at the wrong angle.
  for(int side : {-1,1}) {
    ExperimentRunner p;setup(p,log,imu,roller);
-   ImuReading reading{};p.status_.mekf_bias_y_dps=2;
-   reading.gy_dps=side*30.f/Config::MEKF_GYRO_Y_SCALE+2;
-   p.status_.pitch_mekf_measurement_relative_deg=-side*.40f;
-   p.updateDisplayedAngles(reading);
-   assert(p.status_.pitch_mekf_detector_relative_deg*side<0);
-   p.status_.pitch_mekf_measurement_relative_deg=-side*.38f;
-   p.updateDisplayedAngles(reading);
-   assert(p.status_.pitch_mekf_detector_relative_deg*side>0);
-   assert(p.status_.pitch_mekf_measurement_relative_deg==-side*.38f);
-   assert(fabsf(p.status_.pitch_mekf_detector_relative_deg-side*.01f)<1e-5f);
-   p.energy_control_autonomous_mode_=false;p.updateDisplayedAngles(reading);
-   assert(p.status_.pitch_mekf_detector_relative_deg==p.status_.pitch_mekf_measurement_relative_deg);
+   p.energy_control_autonomous_input_advance_deg_=10;
+   p.energy_control_autonomous_last_peak_side_=side;
+   const unsigned n=outputs;host_us=16000000;
+   imu.reading_.last_gyro_update_us=host_us;imu.reading_.gy_dps=side*30.f/Config::MEKF_GYRO_Y_SCALE;
+   p.status_.pitch_mekf_measurement_relative_deg=p.status_.pitch_mekf_detector_relative_deg=side*9.f;
+   p.updateEnergyControlAutonomousMotion(millis());
+   host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+   p.status_.pitch_mekf_measurement_relative_deg=p.status_.pitch_mekf_detector_relative_deg=side*11.f;
+   p.updateEnergyControlAutonomousMotion(millis());assert(outputs==n);
+   imu.reading_.gy_dps=-side*30.f/Config::MEKF_GYRO_Y_SCALE;
+   p.energy_control_autonomous_previous_detector_relative_angle_deg_=side*.1f;
+   host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
+   p.status_.pitch_mekf_measurement_relative_deg=p.status_.pitch_mekf_detector_relative_deg=-side*.1f;
+   p.updateEnergyControlAutonomousMotion(millis());
+   assert(outputs==n && p.energy_control_autonomous_half_cycle_state_==Half::WAIT_PEAK);
  }
+ quiet=false;
  // Independent accepted crossings, all integer widths, both sides, residual
  // current signs, fresh voltage changes, clipping, invalid state and I/O failure.
  for(unsigned i=0;i<20000;++i){
@@ -153,7 +184,7 @@ int main(){
   imu.reading_.gyro_sequence=i+1;imu.reading_.last_gyro_update_us=host_us;
   imu.reading_.gy_dps=rate/Config::MEKF_GYRO_Y_SCALE;
   r.status_.pitch_mekf_measurement_relative_deg=8*sinf(phase);
-  r.status_.pitch_mekf_detector_relative_deg=r.status_.pitch_mekf_measurement_relative_deg+rate*0.013f;
+  r.status_.pitch_mekf_detector_relative_deg=r.status_.pitch_mekf_measurement_relative_deg;
   r.updateEnergyControlAutonomousMotion(millis());
   emit(audits.count());for(unsigned k=0;k<audits.count();++k)emit(audits.at(k));
   r.updateEnergyControlAutonomousPulse(millis());state(r);

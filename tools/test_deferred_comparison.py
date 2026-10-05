@@ -66,11 +66,8 @@ int main() {
       now.updateFilterSeries(r); now.updateDisplayedAngles(r);
       if (autonomous) equal(now.status_.pitch_mekf_deg,now.status_.pitch_mekf_detector_relative_deg);
       else equal(old.status_.pitch_mekf_deg,now.status_.pitch_mekf_deg);
-      if (autonomous) {
-        const float rate=(r.gy_dps-now.status_.mekf_bias_y_dps)*Config::MEKF_GYRO_Y_SCALE;
-        const float expected=now.status_.pitch_mekf_measurement_relative_deg+rate*0.013f;
-        assert(fabsf(now.status_.pitch_mekf_detector_relative_deg-expected)<1e-5f);
-      } else equal(old.status_.pitch_mekf_detector_relative_deg,now.status_.pitch_mekf_detector_relative_deg);
+      if (autonomous) equal(now.status_.pitch_mekf_detector_relative_deg,now.status_.pitch_mekf_measurement_relative_deg);
+      else equal(old.status_.pitch_mekf_detector_relative_deg,now.status_.pitch_mekf_detector_relative_deg);
       equal(old.status_.pitch_mekf_measurement_relative_deg,now.status_.pitch_mekf_measurement_relative_deg);
       const auto q1=old.mekf_.quaternion(), q2=now.mekf_.quaternion();
       equal(q1.w,q2.w);equal(q1.x,q2.x);equal(q1.y,q2.y);equal(q1.z,q2.z);
@@ -92,7 +89,7 @@ int main() {
     }
   }
   assert(deferred==7750);
-  std::cout << "32,000 production/frozen filter states: posterior angles and same-sample comparison exact; early detector projection verified; 7,750 deferred pulse transitions PASS\n";
+  std::cout << "32,000 production/frozen filter states: posterior angles and same-sample comparison exact; unprojected angle threshold coordinate verified; 7,750 deferred pulse transitions PASS\n";
 }
 '''
 with tempfile.TemporaryDirectory() as directory:

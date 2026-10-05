@@ -52,6 +52,7 @@ static void captureRunState(void*, RunControlSnapshot& out) {
   out.mekf_attitude = st.mekf_attitude;
   out.steering = st.steering;
   out.target_deg = runner.energyControlAutonomousTargetPeakDeg();
+  out.input_advance_deg = runner.energyControlAutonomousInputAngleDeg();
   out.led_state = st.led_state; out.sync_event_id = st.sync_event_id;
   out.upright_stable = upright_stable; out.upright_epoch = upright_epoch;
   out.upright_since_us = upright_since_us;
@@ -99,7 +100,8 @@ static bool controlStep(void*) {
   }
   RuntimeDiag::phase(RuntimeDiag::Lane::Control, RuntimeDiag::Phase::ControlCommand);
   float start_target_deg = 0.0f;
-  const auto command = run_control.takeCommand(&start_target_deg);
+  float start_input_advance_deg = autonomous_input_angle::kDefaultDeg;
+  const auto command = run_control.takeCommand(&start_target_deg, &start_input_advance_deg);
   if (command == RunControlWorker::Command::Start) {
     bool ok = false;
     const char* error = "clear_previous_run_first";
@@ -108,7 +110,8 @@ static bool controlStep(void*) {
       else if (!imu.acquisitionHealthy() || imu.stale(millis())) error = "imu_not_healthy";
       else if (!feet.readyToStart()) error = "foot_camera_and_upright_zero_required";
       else {
-        ok = runner.setEnergyControlAutonomousTarget(start_target_deg) &&
+        ok = runner.setEnergyControlAutonomousInputAngle(start_input_advance_deg) &&
+            runner.setEnergyControlAutonomousTarget(start_target_deg) &&
             runner.startEnergyControlAutonomousCapture();
         error = ok ? "started" : runner.status().last_error;
         if (ok) {

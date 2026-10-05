@@ -13,14 +13,14 @@
     <header class="hero">
       <p class="eyebrow">ATOMS3R / FREE-FOOT AMPLITUDE CONTROL</p>
       <h1>Free-foot Runtime V2<br><span>左右足角度・制御・ログを統合</span></h1>
-      <p class="lead">Free-foot Runtime V2 / 0.47.35。ZEROクロスより約10 ms早い予測判定ごとに1000 mA / 100 msを固定で出す、自由足の切り替え試験版です。30秒間の振幅と足角度を記録します。</p>
+      <p class="lead">Free-foot Runtime V2 / 0.47.36。ZEROへ戻る途中の設定角度で1000 mA / 100 msを固定で出す、自由足の切り替え試験版です。30秒間の振幅と足角度を記録します。</p>
       <div class="badges"><span>ESP32-S3</span><span>BMI270 400/200 Hz</span><span>RWLOG v53</span><span>MEKF</span><span>左右足角度</span></div>
     </header>
     <section class="panel important">
       <h2>今回の構成</h2>
-<p>始動後、物理ピークを確認した後、3 ms遅延補償に10 msの先行予測を加えた判定で、方向に応じて1000 mAを毎回100 ms指令します。目標角8°・10°・12°の選択値はログ上の比較用で、この版ではパルス幅を調節しません。yaw自動補正は停止したままです。</p>
+<p>始動後、物理ピークを確認した後、WebUIで設定したZEROの0〜10°手前の角度で、方向に応じて1000 mAを毎回100 ms指令します。目標角8°・10°・12°の選択値はログ上の比較用で、この版ではパルス幅を調節しません。yaw自動補正は停止したままです。</p>
       <p>元の逆算幅も診断ログに残します。MEKF左右角の絶対値が16°に達したらESTOPします。振幅が増え続ける場合は手動STOPまたは給電遮断でも止めてください。<a href="https://github.com/temesotejam/atoms3r-zero-cross-fixed-100ms-test/blob/main/README.md">試験の目的と変更内容</a></p>
-      <p>横揺れのMEKF推定、固定3ms補償、30秒測定、開始・終了のLED同期、足角度観測を維持します。足角度は制御入力には使用しません。</p>
+      <p>横揺れのMEKF推定、設定角度での入力、30秒測定、開始・終了のLED同期、足角度観測を維持します。足角度は制御入力には使用しません。</p>
       <p>RWLOGは1試料112バイト。MEKFのyaw復元用クォータニオン、地磁気、未使用の比較系列を除き、足・イベントは項目名を共有して保存します。測定後にログを確定し、CRCで検証できる4KB以下のチャンクで取得します。ブラウザの一時停止・再接続・再読み込み後も保存済みの部分を再利用できます。</p>
       <p><strong>足角度の校正はMEKFを基準にした暫定値です。係数決定に使わなかった手持ち2姿勢では、再計算上の残差が左右とも約0.26〜0.32°です。</strong>ビルドとホスト検証の範囲、実機で確認する項目は<a href="https://github.com/temesotejam/atoms3r-free-foot-amplitude-control/blob/main/docs/FOOT_CALIBRATION_0477.md">校正の根拠</a>を参照してください。カメラは15fpsを目標に設定し、画面に実測値を表示します。</p>
       <p>WebUIの角度選択欄はログの比較条件として残っています。どれを選んでもZEROクロスのパルスは同じ1000 mA / 100 msです。実機の振幅と処理時間は測定後のRWLOGで確認します。</p>
@@ -30,13 +30,13 @@
       <h2>書き込みと測定</h2>
       <p>書き込み時はPCをインターネットにつながるWi-Fiまたは有線LANへ接続し、AtomS3RをUSBでつないでください。PC版ChromeまたはEdgeで下のボタンを押します。機体のWi-Fiへ切り替えるのは書き込み完了後です。</p>
       <esp-web-install-button manifest="manifest-freefoot-runtime-v2.json">
-        <button slot="activate" class="primary">0.47.35 ZEROクロス10 ms先行・100 ms固定試験版を書き込む</button>
+        <button slot="activate" class="primary">0.47.36 入力角度調整・1 A / 100 ms固定試験版を書き込む</button>
         <span slot="unsupported" class="warning">PC版ChromeまたはEdgeを使用してください。</span>
       </esp-web-install-button>
       <ol>
         <li>測定時はバッテリーで起動し、Wi-Fi <code>AtomS3CAM_Q1_SHADOW</code>（パスワード <code>12345678</code>）へ接続します。</li>
         <li><a href="http://192.168.4.1/">http://192.168.4.1/</a>を開きます。起動時のUSB待機8秒＋従来の10秒後のLED点灯を目安に胴体と両足を直立させ、左右の白マーカーが見える状態で2秒以上静止してください。</li>
-        <li>書き換え後はWebUIを再読み込みし、0.47.35と「ZEROクロス入力 1000 mA / 100 ms固定」を確認します。左右のゼロ点が確定したら「30秒測定を開始」を押します。</li>
+        <li>書き換え後はWebUIを再読み込みし、0.47.36と「ZEROクロス入力 1000 mA / 100 ms固定」を確認します。左右のゼロ点が確定したら入力角度（0〜10°、初期値1°）を設定して「30秒測定を開始」を押します。</li>
         <li>測定終了後は「今回の測定目標」を確認し、「RWLOGを取得・再開」と足角度CSVで保存します。</li>
         <li>次の測定には「ログを消去・次の測定へ」を使い、目標角を選び直せます。足角度のゼロ点は同じ起動中は保持され、胴体の測定ゼロ点は各Run開始時に取得します。</li>
       </ol>

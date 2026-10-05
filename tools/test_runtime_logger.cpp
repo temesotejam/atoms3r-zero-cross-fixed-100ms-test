@@ -67,7 +67,7 @@ int main(int argc,char** argv){
   PsramLogger logger;assert(logger.begin());
   assert(sizeof(PsramLogger)<4096);
   assert(PsramLogger::eventStorageBytes()==190144);
-  logger.startRun(1,123456,300,100,1000,false,0,800,0,false,NAN,false,0,false,true);
+  logger.startRun(1,123456,300,100,1000,false,0,800,0,false,NAN,false,0,false,true,2.5f);
   LogSample row{};row.motor_cmd_mA=300;row.roller_actual_current_mA=270;
   row.gyro_heading_cdeg=LOG_NAN_I32;
   row.steering_actual_difference_cdeg=LOG_NAN_I16;
