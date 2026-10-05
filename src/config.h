@@ -123,7 +123,7 @@ static constexpr char ATTITUDE_VALIDATION_REVISION[] = "v46aj_fixed_3ms_compensa
 // V46ak changes observation only. ATTITUDE_VALIDATION_REVISION intentionally remains V46aj.
 static constexpr char AMPLITUDE_CONTROL_OBSERVATION_REVISION[] = "v46ak_pre_input_state_observation_20260920";
 // V46al-R2 previous-peak active control begin
-static constexpr char AMPLITUDE_CONTROL_REVISION[] = "peak_percent_trigger_adjustable_1200mA_100ms_15s_04739_20261005";
+static constexpr char AMPLITUDE_CONTROL_REVISION[] = "body_speed_peak_trigger_1200mA_100ms_15s_04740_20261005";
 static constexpr char AMPLITUDE_CONTROL_BASELINE_SOURCE[] =
     "atoms3r-amplitude-control-v46ak-stable@bb9c5ed07c5ca8b3c6c6b5813b6c2f1b1f57a6ec";
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_PREVIOUS_PEAK_MODEL_REVISION[] =
@@ -280,7 +280,7 @@ static constexpr uint8_t ENERGY_CONTROL_V0_INVALID_EVENT_LOG_OVERFLOW = 12;
 // event policy separates raw detector candidates from accepted physical events
 // so pulse transients cannot self-trigger the next control cycle.
 static constexpr char ENERGY_CONTROL_AUTONOMOUS_MEASUREMENT_MODE[] =
-    "peak_percent_trigger_adjustable_fixed_100ms_1200mA_rwlog15s";
+    "body_speed_peak_trigger_fixed_100ms_1200mA_rwlog15s";
 static constexpr uint32_t ENERGY_CONTROL_AUTONOMOUS_DURATION_MS = 15000UL;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_DEFAULT_TARGET_PEAK_DEG = 8.0f;
 static constexpr float ENERGY_CONTROL_AUTONOMOUS_TARGET_MIN_DEG = 8.0f;
@@ -833,5 +833,4 @@ static constexpr size_t LOG_BUFFER_BYTES = 5UL * 1024UL * 1024UL;
 static constexpr uint8_t BUFFER_WARNING_PERCENT = 90;
 
 }  // namespace Config
-
 
