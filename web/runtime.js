@@ -75,7 +75,7 @@ function renderOffline() {
     : `比較用の記録角度：${requestedTargetDeg}°（ZEROクロス入力は100 ms固定）`;
   $('run-percent').textContent = requestedInputPercent === null
     ? '入力割合はWeb復帰後に確認します。'
-    : `開始要求の入力位置：直前ピーク角の${requestedInputPercent}%（1 A・100 ms固定）`;
+    : `開始要求の入力位置：直前ピーク角の${requestedInputPercent}%（1.2 A・100 ms固定）`;
   $('remaining').textContent = remaining ? `${remaining} s（Web復帰目安）` : '復帰待ち';
   for (const id of ['pitch', 'current', 'right', 'left', 'fps']) $(id).textContent = '—';
   $('guide').textContent = '本体で制御・観測・記録を行います。開始5秒＋測定15秒＋終了5秒が予定時間です。前後90°以上の傾斜でSTOPします。横倒しは姿勢STOPの対象にしません。表示時間はPC側の目安で、実際の進行・終了を確認した値ではありません。';
@@ -136,7 +136,7 @@ function render(s) {
     angleInitialized = true; angleBootId = s.boot_id;
   }
   $('run-percent').textContent = s.running || terminal
-    ? `今回の入力位置：直前ピーク角の${format(s.input_peak_percent, 1)}%（1 A・100 ms固定）`
+    ? `今回の入力位置：直前ピーク角の${format(s.input_peak_percent, 1)}%（1.2 A・100 ms固定）`
     : '入力割合は測定開始時に確定します。';
   $('run-target').textContent = s.running || terminal
     ? `今回の記録角度：${format(s.target_deg, 0)}°（入力は100 ms固定）`

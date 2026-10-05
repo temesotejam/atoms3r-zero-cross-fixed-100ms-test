@@ -451,7 +451,7 @@ PsramString PsramLogger::buildMetadataJson() const {
   json += "\"energy_control_v0_potential_role\":\"geometry_potential_only;not_a_J_eff_or_dissipation_fit\",";
   json += "\"passive_motor_command_policy\":\"passive_capture_only:all_recorded_samples_command_0mA_and_output_off\",";
   json += "\"energy_control_v0_output_policy\":\"sole_actual_output_path;accepted_zero_cross_only;no_braking;all_other_paths_fail_closed\",";
-  json += "\"energy_control_autonomous_policy\":\"independent_actual_output_path;one_1000mA_100ms_start_kick_then_fixed_1000mA_100ms_adjustable_peak_percentage_input;Q_IDENT_E2_and_legacy_paths_fail_closed\",";
+  json += "\"energy_control_autonomous_policy\":\"independent_actual_output_path;one_1200mA_100ms_start_kick_then_fixed_1200mA_100ms_adjustable_peak_percentage_input;Q_IDENT_E2_and_legacy_paths_fail_closed\",";
   json += "\"energy_control_autonomous_revision\":\"V7\",";
   json += "\"energy_control_autonomous_base_revision\":\"V6\",";
   json += "\"normal_excitation_direction_policy\":\"same_as_zero_cross_roll_rate\",";
@@ -480,7 +480,7 @@ PsramString PsramLogger::buildMetadataJson() const {
   json += "\"energy_control_autonomous_peak_policy\":\"uncompensated_posterior_MEKF_extremum_plus_3_returning_MEKF_rate_samples;gyro_sign_change_alone_never_generates_peak;candidate_events_during_pulse_never_accepted;pending_peak_tracks_expected_side_only;no_peak_rate_or_amplitude_minimum\",";
   json += "\"energy_control_autonomous_target_peak_deg\":" + String(control_target_cdeg_ / 100.0f, 3) + ",";
   json += "\"energy_control_autonomous_target_choices_deg\":\"8.0,10.0,12.0\",";
-  json += "\"energy_control_autonomous_start_kick\":\"startup_only;1000mA;100ms;command_direction=-1\",";
+  json += "\"energy_control_autonomous_start_kick\":\"startup_only;1200mA;100ms;command_direction=-1\",";
   json += "\"energy_control_autonomous_startup_pump\":false,";
   json += "\"energy_control_autonomous_peak_coordinate\":\"A=abs(pitch_mekf_measurement_relative_deg_at_posterior_extremum);measurement_start_reference;no_delay_projection;no_output_scaling\",";
   json += "\"energy_control_autonomous_rate_coordinate\":\"(gy_dps-mekf_bias_y_dps)*mekf_gyro_y_scale;live_MEKF_bias;historical_Q1_rate_support_rescaled\",";

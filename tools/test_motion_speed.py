@@ -110,7 +110,7 @@ int main(){
    p.updateDisplayedAngles(imu.reading_);p.updateEnergyControlAutonomousMotion(millis());
    if(outputs!=n+1) std::fprintf(stderr,"lead=%g side=%d speed=%g outputs=%u reason=%u valid=%d before=%g after=%g phase=%u\n",lead,side,speed,outputs,last_zero.reason,last_zero.valid,last_zero.detector_angle_before_deg,last_zero.detector_angle_after_deg,unsigned(p.energy_control_autonomous_half_cycle_state_));
    assert(outputs==n+1 && p.status_.pulse_active);
-   assert(last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1000);
+   assert(last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1200);
    assert(last_zero.physical_next_peak_side==-side);
    assert(fabsf(last_zero.detector_crossing_alpha-.5f)<1e-5f);
    host_us+=2500;imu.reading_.last_gyro_update_us=host_us;
@@ -145,7 +145,7 @@ int main(){
      p.updateDisplayedAngles(imu.reading_);p.updateEnergyControlAutonomousMotion(millis());
      assert(outputs==n+1 && p.status_.pulse_active);
    }
-   assert(last_zero.command_current_mA==1000 && last_zero.pulse_width_ms==100);
+   assert(last_zero.command_current_mA==1200 && last_zero.pulse_width_ms==100);
  }
  // Outward motion cannot fire. A sub-threshold peak skips output at centre
  // and rearms for the next peak instead of firing late at the wrong angle.
@@ -252,7 +252,7 @@ int main(){
    assert(last_zero.target_peak_deg==mean);
    const float residual=last_zero.free_next_peak_amplitude_deg-last_zero.rate_baseline_peak_deg;
    assert(fabsf(residual)<1e-5f); // retired 8-degree residual must not be stacked
-   assert(last_zero.output_executed && last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1000);
+   assert(last_zero.output_executed && last_zero.pulse_width_ms==100 && last_zero.command_current_mA==1200);
    assert(p.status_.steering.reason==steering::Reason::Disabled);
    assert(!p.status_.steering.gyro_valid && std::isnan(p.status_.steering.yaw_deg));
    assert(p.status_.steering.delta_deg==0 && p.status_.steering.cycles==0);
@@ -291,4 +291,4 @@ with tempfile.TemporaryDirectory(prefix='motion-speed-') as tmp:
                  '-o',str(p/'test')]
         subprocess.run(command,check=True)
         results.append(subprocess.check_output([str(p/'test')]))
-    print(f'Fixed-width decision flow: {len(results[0])} serialized bytes; all executed ZERO-cross pulses are 100 ms / 1000 mA; scheduling/physical timing unverified PASS')
+    print(f'Fixed-width decision flow: {len(results[0])} serialized bytes; all executed ZERO-cross pulses are 100 ms / 1200 mA; scheduling/physical timing unverified PASS')
