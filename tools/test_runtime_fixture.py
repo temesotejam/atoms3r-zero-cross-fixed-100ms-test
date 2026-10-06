@@ -70,7 +70,7 @@ header = converter.parse_header(data)
 metadata = converter.expand_tables(json.loads(data[110:110+header['metadata_json_size']], parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value))))
 assert metadata['metadata_json_final_bytes'] == header['metadata_json_size']
 assert not metadata['metadata_event_detail_truncated']
-assert metadata['firmware_revision']=='0.47.41-adjustable-current-and-peak-percent-100ms-15s'
+assert metadata['firmware_revision']=='0.47.42-mekf-roll-pitch-rwlog-v54'
 assert metadata['autonomous_input_advance_us']==0
 assert metadata['autonomous_total_timing_projection_us']==0
 assert metadata['autonomous_timing_compensation_us']==0
@@ -172,6 +172,9 @@ with tempfile.TemporaryDirectory() as tmp:
         assert 'CRC' in str(error)
 print('maximum RWLOG JSON, complete event/foot counts, CSV and corrupt-file refusal PASS')
 
-assert metadata["columns"]["timeseries"] == converter.CSV_COLUMNS_V53
-assert header["format_version"] == 53 and header["log_sample_size"] == 112
+assert metadata["columns"]["timeseries"] == converter.CSV_COLUMNS_V54
+assert metadata['mekf_roll_pitch_semantics'].startswith('v54_posterior_ZYX_roll_and_pitch_deg_same_sample')
+assert header["format_version"] == 54 and header["log_sample_size"] == 114
+assert samples[0]['roll_mekf_abs_deg'] == '12.34'
+assert samples[0]['pitch_mekf_abs_deg'] == '5.67'
 assert "magnetometer" not in metadata

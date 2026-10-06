@@ -176,6 +176,7 @@ int main() {
     const auto roller_before = roller;
     host_us = now_us + 50000;
     encodeLogSample(result, status, roller, now_us, test_ms, start_us, ceilings);
+    assert(result.roll_mekf_abs_cdeg == LOG_NAN_I16);
     assert(result.gyro_heading_cdeg == LOG_NAN_I32 && !result.gyro_heading_valid);
     assert(result.steering_delta_cdeg == 0 && result.steering_cycles == 0);
     assert(result.steering_actual_difference_cdeg == LOG_NAN_I16);
@@ -233,6 +234,19 @@ int main() {
     assert(!std::memcmp(&old, &untouched_roller, sizeof(old)));
     ++checked;
   }
+  ExperimentStatus status;
+  RollerTelemetry roller;
+  LogSample row{};
+  float ceilings[Config::DYNAMIC_BETA_COUNT]{};
+  status.mekf_attitude.valid = true;
+  status.mekf_attitude.quaternion = {0.9622502f, 0.2578342f, 0.0841860f, -0.0225576f};
+  status.pitch_mekf_abs_deg = 10.0f;
+  encodeLogSample(row, status, roller, 1234, 0, 0, ceilings);
+  assert(std::abs(row.roll_mekf_abs_cdeg - 3000) <= 2);
+  assert(row.pitch_mekf_abs_cdeg == 1000);
+  status.mekf_attitude.valid = false;
+  encodeLogSample(row, status, roller, 1234, 0, 0, ceilings);
+  assert(row.roll_mekf_abs_cdeg == LOG_NAN_I16);
   std::cout << "Packed RWLOG rows equal frozen 0.47.12: " << checked
             << " cases, all retained fields; states/sync/wrap/nonfinite/saturation preserved PASS\n";
 }

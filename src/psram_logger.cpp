@@ -17,7 +17,7 @@ extern FootObserver feet;
 
 #include "config.h"
 
-static constexpr uint16_t RWLOG_FORMAT_VERSION = 53;
+static constexpr uint16_t RWLOG_FORMAT_VERSION = 54;
 static constexpr uint32_t RWLOG_FLAG_CRC32 = 1U << 0;
 namespace {
 String jsonFloatOrNull(float value, unsigned int decimals) {
@@ -586,6 +586,7 @@ PsramString PsramLogger::buildMetadataJson() const {
   json += "\"roller_current_age_us_semantics\":\"time_since_last_successful_CURRENT_READBACK;4294967295_means_unknown\",";
   json += "\"roller_q_meas_observed_semantics\":\"absolute_current_trapezoid_over_adjacent_fresh_samples_inside_active_pulse_only;edge_intervals_are_not_estimated;diagnostic_not_total_physical_Q\",";
   json += "\"roller_q_meas_observed_valid_semantics\":\"at_least_two_fresh_active_pulse_samples_and_no_fast_current_read_failure_in_that_pulse;does_not_authorize_control\",";
+  json += "\"mekf_roll_pitch_semantics\":\"v54_posterior_ZYX_roll_and_pitch_deg_same_sample;physical_roll_abs_deg_is_accel_diagnostic;no_yaw_heading_estimate\",";
   json += "\"pulse_q_target_pred_semantics\":\"normal_V7_selected_q_command_and_q_effective_pred_only;START_KICK_is_null\",";  json += "\"format_version\":" + String(RWLOG_FORMAT_VERSION) + ",";
   json += "\"shadow_forward_model_version\":\"" + String(Config::ZERO_CROSS_V57_FORWARD_MODEL_VERSION) + "\",";
   json += "\"shadow_model_version\":\"" + String(Config::ZERO_CROSS_V57_INVERSE_SHADOW_VERSION) + "\",";
@@ -1484,7 +1485,7 @@ PsramString PsramLogger::buildMetadataJson() const {
   json += "\"beta_x10000\":\"beta * 10000\",";
   json += "\"acc_norm_mg\":\"g * 1000\",\"roller_battery_mV\":\"mV\",";
   json += "\"beta_model_vbat_mV\":\"mV used after fallback or clamp\"},";
-  json += "\"columns\":{\"timeseries\":[\"time_s\",\"log_time_s\",\"t_test_ms\",\"state_id\",\"pulse_id\",\"pulse_active\",\"pulse_direction\",\"motor_cmd_mA\",\"pulse_width_ms_setting\",\"gyro_bias_x_dps\",\"gyro_bias_y_dps\",\"gyro_bias_z_dps\",\"ax_g\",\"ay_g\",\"az_g\",\"gx_dps\",\"gy_dps\",\"gz_dps\",\"acc_norm_g\",\"roller_actual_current_mA\",\"roller_battery_mV\",\"led_state\",\"sync_event_id\",\"physical_roll_abs_deg\",\"roller_current_sample_time_us\",\"roller_current_sequence\",\"roller_q_meas_observed_mA_s\",\"pulse_q_target_mA_s\",\"pulse_q_pred_mA_s\",\"roller_current_valid\",\"roller_q_meas_observed_valid\",\"pitch_mekf_abs_deg\",\"pitch_mekf_measurement_relative_deg\",\"pitch_mekf_detector_relative_deg\",\"mekf_bias_x_dps\",\"mekf_bias_y_dps\",\"mekf_bias_z_dps\",\"mekf_accel_confidence\",\"mekf_accel_residual_deg\",\"mekf_accel_mag_error_g\",\"imu_update_dt_us\",\"imu_sample_age_us\",\"mekf_accel_used\",\"gyro_heading_deg\",\"steering_delta_deg\",\"steering_actual_difference_deg\",\"steering_desired_difference_deg\",\"steering_cycle_yaw_rate_dps\",\"steering_cycles\",\"gyro_heading_valid\",\"steering_reason\"]}";
+  json += "\"columns\":{\"timeseries\":[\"time_s\",\"log_time_s\",\"t_test_ms\",\"state_id\",\"pulse_id\",\"pulse_active\",\"pulse_direction\",\"motor_cmd_mA\",\"pulse_width_ms_setting\",\"gyro_bias_x_dps\",\"gyro_bias_y_dps\",\"gyro_bias_z_dps\",\"ax_g\",\"ay_g\",\"az_g\",\"gx_dps\",\"gy_dps\",\"gz_dps\",\"acc_norm_g\",\"roller_actual_current_mA\",\"roller_battery_mV\",\"led_state\",\"sync_event_id\",\"physical_roll_abs_deg\",\"roller_current_sample_time_us\",\"roller_current_sequence\",\"roller_q_meas_observed_mA_s\",\"pulse_q_target_mA_s\",\"pulse_q_pred_mA_s\",\"roller_current_valid\",\"roller_q_meas_observed_valid\",\"pitch_mekf_abs_deg\",\"roll_mekf_abs_deg\",\"pitch_mekf_measurement_relative_deg\",\"pitch_mekf_detector_relative_deg\",\"mekf_bias_x_dps\",\"mekf_bias_y_dps\",\"mekf_bias_z_dps\",\"mekf_accel_confidence\",\"mekf_accel_residual_deg\",\"mekf_accel_mag_error_g\",\"imu_update_dt_us\",\"imu_sample_age_us\",\"mekf_accel_used\",\"gyro_heading_deg\",\"steering_delta_deg\",\"steering_actual_difference_deg\",\"steering_desired_difference_deg\",\"steering_cycle_yaw_rate_dps\",\"steering_cycles\",\"gyro_heading_valid\",\"steering_reason\"]}";
   json += ",";
   feet.appendMetadata(json);
   const String final_size_key = ",\"metadata_json_final_bytes\":";

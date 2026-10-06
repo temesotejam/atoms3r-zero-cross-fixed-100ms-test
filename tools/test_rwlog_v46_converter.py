@@ -111,6 +111,21 @@ def check(version: int) -> None:
             assert "pitch_mekf_control_deg" not in row
 
 
+def check_compact_angles(version: int) -> None:
+    fields = converter.FIELDS_V54 if version == 54 else converter.FIELDS_V53
+    values = [0] * len(fields)
+    names = [field[1] for field in fields]
+    values[names.index('pitch_mekf_abs_deg')] = 1050
+    if version == 54:
+        values[names.index('roll_mekf_abs_deg')] = -1234
+    packed = struct.pack(converter.sample_format_for_version(version), *values)
+    assert len(packed) == (114 if version == 54 else 112)
+    row = converter.convert_sample(struct.unpack(converter.sample_format_for_version(version), packed), version)
+    assert row['pitch_mekf_abs_deg'] == 10.5
+    assert row.get('roll_mekf_abs_deg') == (-12.34 if version == 54 else None)
+    assert list(row) == converter.csv_columns_for_version(version)[1:] + ['time_s']
+
+
 if __name__ == "__main__":
     check(44)
     check(45)
@@ -121,4 +136,6 @@ if __name__ == "__main__":
     check(50)
     check(51)
     check(52)
-    print("RWLOG v44-v52 compatibility including MEKF amplitude semantics passed")
+    check_compact_angles(53)
+    check_compact_angles(54)
+    print("RWLOG v44-v54 compatibility including MEKF roll and pitch passed")

@@ -51,7 +51,7 @@ struct RwLogFileHeader {
 
 #pragma pack(push, 1)
 struct LogSample {
-  // v53: active sway, raw IMU, current; retain the 16-byte steering suffix.
+  // v54: v53 plus MEKF roll from the same posterior as the existing pitch.
   // 0.47.30 leaves heading/differences unavailable, delta/cycles zero, reason 8.
   uint32_t time_us;
   uint32_t t_test_ms;
@@ -84,6 +84,7 @@ struct LogSample {
   uint8_t roller_current_valid;
   uint8_t roller_q_meas_observed_valid;
   int16_t pitch_mekf_abs_cdeg;
+  int16_t roll_mekf_abs_cdeg;
   int16_t pitch_mekf_measurement_relative_cdeg;
   int16_t pitch_mekf_detector_relative_cdeg;
   int16_t mekf_bias_x_cdps;
@@ -107,4 +108,4 @@ struct LogSample {
 #pragma pack(pop)
 
 static_assert(sizeof(RwLogFileHeader) == 110, "RwLogFileHeader binary size changed");
-static_assert(sizeof(LogSample) == 112, "LogSample binary size changed");
+static_assert(sizeof(LogSample) == 114, "LogSample binary size changed");

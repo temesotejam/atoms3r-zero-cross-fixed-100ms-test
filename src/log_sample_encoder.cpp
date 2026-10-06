@@ -46,6 +46,16 @@ void encodeLogSample(LogSample& row, const ExperimentStatus& status,
   row.roller_current_valid = roller.current_valid ? 1 : 0;
   row.roller_q_meas_observed_valid = roller.q_meas_observed_valid ? 1 : 0;
   row.pitch_mekf_abs_cdeg = log_quantization::scaledI16(status.pitch_mekf_abs_deg, 100.0f);
+  const auto& attitude = status.mekf_attitude;
+  if (attitude.valid) {
+    const auto& q = attitude.quaternion;
+    const float sinr_cosp = 2.0f * (q.w * q.x + q.y * q.z);
+    const float cosr_cosp = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+    row.roll_mekf_abs_cdeg = log_quantization::scaledI16(
+        atan2f(sinr_cosp, cosr_cosp) * (180.0f / 3.14159265358979323846f), 100.0f);
+  } else {
+    row.roll_mekf_abs_cdeg = LOG_NAN_I16;
+  }
   row.pitch_mekf_measurement_relative_cdeg = log_quantization::scaledI16(status.pitch_mekf_measurement_relative_deg, 100.0f);
   row.pitch_mekf_detector_relative_cdeg = log_quantization::scaledI16(status.pitch_mekf_detector_relative_deg, 100.0f);
   row.mekf_bias_x_cdps = log_quantization::scaledI16(status.mekf_bias_x_dps, 100.0f);
