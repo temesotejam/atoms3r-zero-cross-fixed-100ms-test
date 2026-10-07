@@ -59,6 +59,7 @@ static void captureRunState(void*, RunControlSnapshot& out) {
   out.upright_since_us = upright_since_us;
   out.log_epoch_us = log_epoch_us; out.measurement_epoch_us = measurement_epoch_us;
   out.upright_error_deg = pose_metrics.direction_error_deg;
+  out.upright_pitch_error_deg = pose_metrics.pitch_error_deg;
   out.accel_norm_g = pose_metrics.accel_norm_g; out.gyro_norm_dps = pose_metrics.gyro_norm_dps;
   strlcpy(out.state_name, runner.stateName(), sizeof(out.state_name));
   strlcpy(out.last_error, st.last_error ? st.last_error : "", sizeof(out.last_error));
@@ -94,7 +95,8 @@ static bool controlStep(void*) {
     stable = millis() - boot_ms >= 10000 && imu.acquisitionHealthy() && r.last_gyro_update_us &&
         static_cast<uint32_t>(micros() - r.last_gyro_update_us) <= 10000 &&
         isfinite(norm) && fabsf(norm - 1.0f) <= appcfg::kAutoZeroAccelNormToleranceG &&
-        pose_metrics.direction_error_deg <= appcfg::kAutoZeroMaxUprightErrorDeg &&
+        r.az_g < 0.0f &&
+        pose_metrics.pitch_error_deg <= appcfg::kAutoZeroMaxPitchErrorDeg &&
         pose_metrics.gyro_norm_dps <= appcfg::kAutoZeroMaxGyroDps;
     if (stable != upright_stable) { ++upright_epoch; upright_since_us = stable ? esp_timer_get_time() : 0; }
     upright_stable = stable;

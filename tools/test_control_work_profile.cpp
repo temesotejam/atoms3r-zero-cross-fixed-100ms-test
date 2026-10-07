@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
   ImuReading r{};
   cached.update(r); // no sample yet; match the old invalid-gravity diagnostic
   assert(cached.direction_error_deg == UprightPoseGuide::directionErrorDeg(r));
+  assert(cached.pitch_error_deg == UprightPoseGuide::pitchErrorDeg(r));
   uint32_t seed = 937;
   auto sample = [&]() { seed = seed * 1664525U + 1013904223U; return (static_cast<int32_t>(seed >> 8) - 8388608) / 8388608.0f; };
   for (unsigned i = 0; i < 10000; ++i) {
@@ -46,6 +47,7 @@ int main(int argc, char** argv) {
     cached.update(r);
     assert(cached.accel_norm_g == UprightPoseGuide::accelNormG(r));
     assert(cached.direction_error_deg == UprightPoseGuide::directionErrorDeg(r));
+    assert(cached.pitch_error_deg == UprightPoseGuide::pitchErrorDeg(r));
     assert(cached.gyro_norm_dps == UprightPoseGuide::gyroNormDps(r));
     // The runner's physical-roll coordinate is the sign-reversed cached accel
     // angle. Compare with its previous full expression over both hemispheres.
@@ -54,8 +56,40 @@ int main(int argc, char** argv) {
     // Repeated queue-empty control steps must retain identical diagnostics.
     cached.update(r);
     assert(cached.direction_error_deg == UprightPoseGuide::directionErrorDeg(r));
+    assert(cached.pitch_error_deg == UprightPoseGuide::pitchErrorDeg(r));
   }
   ++r.accel_sequence; r.ax_g = NAN; r.acc_norm_g = NAN; cached.update(r);
   assert(std::isnan(cached.accel_norm_g) && cached.direction_error_deg == 180);
+  assert(cached.pitch_error_deg == 180);
+  // A steady fore/aft roll offset beyond the former 8-degree 3D gate is
+  // admissible, while lateral pitch, inversion and motion remain disallowed.
+  constexpr float roll = 12.0f * 0.017453292519943295f;
+  ImuReading tilted{};
+  tilted.ax_g = UprightPoseGuide::REF_AX;
+  tilted.ay_g = UprightPoseGuide::REF_AY * cosf(roll) - UprightPoseGuide::REF_AZ * sinf(roll);
+  tilted.az_g = UprightPoseGuide::REF_AY * sinf(roll) + UprightPoseGuide::REF_AZ * cosf(roll);
+  assert(UprightPoseGuide::directionErrorDeg(tilted) > 8.0f);
+  assert(UprightPoseGuide::pitchErrorDeg(tilted) < 0.01f);
+  assert(UprightPoseGuide::isUprightStableSample(tilted));
+  // Captured idle diagnostics: old combined error 5.93 degrees blocked zero,
+  // while the lateral pitch component is only about 0.12 degrees.
+  ImuReading observed{};
+  observed.ax_g = 0.023926f; observed.ay_g = -0.070557f; observed.az_g = -1.008545f;
+  observed.gx_dps = -0.305176f; observed.gy_dps = -0.166427f; observed.gz_dps = 0.061035f;
+  assert(UprightPoseGuide::directionErrorDeg(observed) > 5.0f);
+  assert(UprightPoseGuide::pitchErrorDeg(observed) < 0.2f);
+  assert(UprightPoseGuide::isUprightStableSample(observed));
+  tilted.gy_dps = 5.1f;
+  assert(!UprightPoseGuide::isUprightStableSample(tilted));
+  tilted.gy_dps = 0;
+  const float pitch = (asinf(UprightPoseGuide::REF_AX) + 5.5f * 0.017453292519943295f);
+  tilted.ax_g = sinf(pitch);
+  const float yz = sqrtf((1.0f - tilted.ax_g * tilted.ax_g) /
+      (tilted.ay_g * tilted.ay_g + tilted.az_g * tilted.az_g));
+  tilted.ay_g *= yz; tilted.az_g *= yz;
+  assert(UprightPoseGuide::pitchErrorDeg(tilted) > 5.0f);
+  assert(!UprightPoseGuide::isUprightStableSample(tilted));
+  tilted.az_g = -tilted.az_g;
+  assert(!UprightPoseGuide::isUprightStableSample(tilted));
   std::cout << "Control profile cohorts, idle exclusion, clock wrap, reset and cached geometry equivalence PASS\n";
 }

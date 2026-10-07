@@ -70,7 +70,7 @@ header = converter.parse_header(data)
 metadata = converter.expand_tables(json.loads(data[110:110+header['metadata_json_size']], parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value))))
 assert metadata['metadata_json_final_bytes'] == header['metadata_json_size']
 assert not metadata['metadata_event_detail_truncated']
-assert metadata['firmware_revision']=='0.47.42-mekf-roll-pitch-rwlog-v54'
+assert metadata['firmware_revision']=='0.47.43-pitch-only-foot-zero-rwlog-v54'
 assert metadata['autonomous_input_advance_us']==0
 assert metadata['autonomous_total_timing_projection_us']==0
 assert metadata['autonomous_timing_compensation_us']==0
@@ -110,6 +110,8 @@ assert metadata['foot_observation']['detector'] == 'sparse_rows_identity_v3'
 assert metadata['foot_observation']['weak_candidate_confirmation']==dict(frames=3,min_x_step_px=20,min_y_step_px=16,
     contrast_ratio_below=.5,weight_ratio_below=.1,condition='recent_track_and_xy_steps_and_both_quality_drops')
 assert metadata['foot_observation']['zero_reason'] == 'ready'
+assert metadata['foot_observation']['zero_max_pitch_error_deg'] == 5
+assert 'roll_offset_allowed_if_stationary' in metadata['foot_observation']['zero_pitch_reference']
 assert metadata['foot_observation']['zero_max_nominal_offset_px'] == 35
 assert metadata['foot_observation']['zero_max_spread_px'] == 4
 assert metadata['foot_observation']['vertical_recovery_angle_accuracy_validated'] is False

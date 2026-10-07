@@ -161,7 +161,7 @@ function render(s) {
   else if (!f.zero_ready && f.zero_reason === 'position_mismatch') $('guide').textContent = 'ゼロ点候補が基準位置から大きく外れています。両足を直立させ、「検出画像を確認」で白四角を選んでいるか確認してください。';
   else if (!f.zero_ready && f.zero_reason === 'marker_moving') $('guide').textContent = '足の位置が動いているためゼロ点を取り直しています。胴体と両足を静止させてください。';
   else if (!f.zero_ready && f.zero_reason === 'marker_invalid') $('guide').textContent = '左右の白四角を確認しています。「検出画像を確認」で選択位置を確認できます。';
-  else if (!f.zero_ready) $('guide').textContent = `胴体と両足を直立させ、白四角が見える状態で2秒以上静止してください。姿勢誤差 ${format(s.upright.error_deg, 1)}° / 角速度 ${format(s.upright.gyro_dps, 1)}°/s`;
+  else if (!f.zero_ready) $('guide').textContent = `左右のpitchを基準へ近づけ、前後のrollと両足を2秒以上静止させてください。pitch基準差 ${format(s.upright.pitch_error_deg, 1)}°（5°以内）/ 角速度 ${format(s.upright.gyro_dps, 1)}°/s`;
   else if (!f.right_valid || !f.left_valid) $('guide').textContent = '未検出の足があります。マーカーの見え方を確認してください。この姿勢の診断JSONを保存すると原因の確認に使えます。';
   else $('guide').textContent = s.ready ? '直立姿勢を保ち、測定を開始してください。' : 'IMUの初期化・静止確認を待っています。';
   $('diagnostic-view').textContent = JSON.stringify(s, null, 2);

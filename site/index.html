@@ -13,7 +13,7 @@
     <header class="hero">
       <p class="eyebrow">ATOMS3R / FREE-FOOT AMPLITUDE CONTROL</p>
       <h1>Free-foot Runtime V2<br><span>左右足角度・制御・ログを統合</span></h1>
-      <p class="lead">Free-foot Runtime V2 / 0.47.42。ZEROへ戻る途中の直前ピークに対する設定割合の角度で設定電流（100〜1200 mA）/ 100 msを固定で出す、自由足の切り替え試験版です。15秒間の振幅と足角度を記録します。</p>
+      <p class="lead">Free-foot Runtime V2 / 0.47.43。ZEROへ戻る途中の直前ピークに対する設定割合の角度で設定電流（100〜1200 mA）/ 100 msを固定で出す、自由足の切り替え試験版です。15秒間の振幅と足角度を記録します。</p>
       <div class="badges"><span>ESP32-S3</span><span>BMI270 400/200 Hz</span><span>RWLOG v54</span><span>MEKF</span><span>左右足角度</span></div>
     </header>
     <section class="panel important">
@@ -30,13 +30,13 @@
       <h2>書き込みと測定</h2>
       <p>書き込み時はPCをインターネットにつながるWi-Fiまたは有線LANへ接続し、AtomS3RをUSBでつないでください。PC版ChromeまたはEdgeで下のボタンを押します。機体のWi-Fiへ切り替えるのは書き込み完了後です。</p>
       <esp-web-install-button manifest="manifest-freefoot-runtime-v2.json">
-        <button slot="activate" class="primary">0.47.42 ピーク割合調整・電流調整・100 ms固定試験版を書き込む</button>
+        <button slot="activate" class="primary">0.47.43 ピーク割合調整・電流調整・100 ms固定試験版を書き込む</button>
         <span slot="unsupported" class="warning">PC版ChromeまたはEdgeを使用してください。</span>
       </esp-web-install-button>
       <ol>
         <li>測定時はバッテリーで起動し、Wi-Fi <code>AtomS3CAM_Q1_SHADOW</code>（パスワード <code>12345678</code>）へ接続します。</li>
         <li><a href="http://192.168.4.1/">http://192.168.4.1/</a>を開きます。起動時のUSB待機8秒＋従来の10秒後のLED点灯を目安に胴体と両足を直立させ、左右の白マーカーが見える状態で2秒以上静止してください。</li>
-        <li>書き換え後はWebUIを再読み込みし、0.47.42と指令電流と入力割合の設定欄を確認します。左右のゼロ点が確定したら入力割合（0〜100%、初期値50%）を設定して「15秒測定を開始」を押します。</li>
+        <li>書き換え後はWebUIを再読み込みし、0.47.43と指令電流と入力割合の設定欄を確認します。左右のpitchを基準に合わせ、rollと足を2秒以上静止させてゼロ点を確定します。入力割合（0〜100%、初期値50%）を設定して「15秒測定を開始」を押します。</li>
         <li>測定終了後は「今回の測定目標」を確認し、「RWLOGを取得・再開」と足角度CSVで保存します。</li>
         <li>次の測定には「ログを消去・次の測定へ」を使い、目標角を選び直せます。足角度のゼロ点は同じ起動中は保持され、胴体の測定ゼロ点は各Run開始時に取得します。</li>
       </ol>

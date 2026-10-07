@@ -239,6 +239,7 @@ void WebUi::status() {
   json += ",\"failures\":" + String(f.frame_failures) + ",\"overflow\":" + String(f.overflow ? "true" : "false") + "}";
   json += ",\"upright\":{\"stable\":" + String(s.upright_stable ? "true" : "false");
   json += ",\"error_deg\":" + num(s.upright_error_deg) + ",\"accel_g\":" + num(s.accel_norm_g);
+  json += ",\"pitch_error_deg\":" + num(s.upright_pitch_error_deg);
   json += ",\"gyro_dps\":" + num(s.gyro_norm_dps) + "}";
   json += ",\"camera\":{\"initialized\":" + String(camera.camera_ok ? "true" : "false");
   json += ",\"receiver_active\":" + String(camera.receiver_active ? "true" : "false");

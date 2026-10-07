@@ -197,6 +197,8 @@ void FootObserver::appendMetadata(PsramString& json) const {
   json += ",\"zero_reason\":\"" + String(footZeroReasonName(s.zero_reason)) + "\"";
   json += ",\"zero_max_nominal_offset_px\":" + number(appcfg::kAutoZeroMaxNominalOffsetXPx);
   json += ",\"zero_max_spread_px\":" + number(appcfg::kAutoZeroMaxSpreadXPx);
+  json += ",\"zero_pitch_reference\":\"raw_imu_x_normalized_gravity_vs_historical_upright;roll_offset_allowed_if_stationary;upright_hemisphere_required\"";
+  json += ",\"zero_max_pitch_error_deg\":" + number(appcfg::kAutoZeroMaxPitchErrorDeg);
   json += ",\"right_zero_x\":" + number(s.right_zero) + ",\"left_zero_x\":" + number(s.left_zero);
   json += ",\"right_deg_per_px\":" + String(appcfg::kFootAngleADegPerPx, 9);
   json += ",\"left_deg_per_px\":" + String(appcfg::kFootAngleBDegPerPx, 9) + ",";

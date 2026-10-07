@@ -121,7 +121,9 @@ static constexpr float kTiltStaticAccelNormToleranceG = 0.05f;
 static constexpr float kAutoZeroMaxNominalOffsetXPx = 35.0f;
 static constexpr float kAutoZeroMaxSpreadXPx = 4.0f;
 // All conditions must remain continuously true before the reference locks.
-static constexpr float kAutoZeroMaxUprightErrorDeg = 5.0f;
+// MEKF pitch-axis gravity tilt relative to the measured upright reference.
+// A stable fore/aft roll offset is permitted during foot zeroing.
+static constexpr float kAutoZeroMaxPitchErrorDeg = 5.0f;
 static constexpr float kAutoZeroMaxGyroDps = 1.5f;
 static constexpr float kAutoZeroAccelNormToleranceG = 0.03f;
 static constexpr uint32_t kAutoZeroStableMs = 2000;

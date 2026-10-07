@@ -28,7 +28,7 @@ struct RunControlSnapshot {
   int16_t input_current_mA = autonomous_input_current::kDefaultMa;
   MekfAttitudeSnapshot mekf_attitude;
   steering::Snapshot steering = steering::disabledSnapshot();
-  float upright_error_deg = 180, accel_norm_g = 0, gyro_norm_dps = 0;
+  float upright_error_deg = 180, upright_pitch_error_deg = 180, accel_norm_g = 0, gyro_norm_dps = 0;
   uint32_t imu_sample_us = 0;
   bool running = false;
   uint8_t state_id = 0;
